@@ -228,6 +228,7 @@ export function App({
     handleOpenBrowserTab,
     handleToggleGit,
     handleOpenGit,
+    handleOpenFileTreePane,
     handleOpenTreemapping,
     handleOpenWhiteboard,
     handleOpenDeveloperTools,
@@ -1246,6 +1247,7 @@ export function App({
         handleOpenDeveloperTools={handleOpenDeveloperTools}
         handleOpenTerminalTab={handleOpenTerminalTabIfWritable}
         handleToggleGit={handleToggleGitIfWritable}
+        handleOpenFileTreePane={handleOpenFileTreePane}
         handleToggleSidePane={handleToggleSidePane}
         handleOpenBrowserUrl={handleOpenBrowserUrl}
         handleOpenCodeViewer={handleOpenCodeViewerIfWritable}

@@ -304,6 +304,7 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
   handleOpenDeveloperTools,
   handleOpenTerminalTab,
   handleToggleGit,
+  handleOpenFileTreePane,
   handleOpenGitReview,
   handleToggleSidePane,
   handleOpenBrowserUrl,
@@ -744,6 +745,16 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
           tab.workspacePath === workspaceAbsPath &&
           (!workspaceIdentity || tab.workspaceIdentity === workspaceIdentity),
       )?.remoteTarget,
+    [workspaceAbsPath, workspaceIdentity, workspaceTabs],
+  );
+  // 右侧 file-tree tab 的头部展示名：优先 workspace tab 标签，兜底路径末段。
+  const workspaceDisplayName = useMemo(
+    () =>
+      workspaceTabs.find(
+        (tab) =>
+          tab.workspacePath === workspaceAbsPath &&
+          (!workspaceIdentity || tab.workspaceIdentity === workspaceIdentity),
+      )?.label || getPathLeaf(workspaceAbsPath),
     [workspaceAbsPath, workspaceIdentity, workspaceTabs],
   );
   const workspaceLocalPathForRemoteMcpSync = useMemo(
@@ -1437,6 +1448,8 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
       workspaceAbsPath={workspaceAbsPath}
       workspaceIdentity={workspaceIdentity}
       workspaceRemoteSessionId={workspaceRemoteSessionId}
+      workspaceName={workspaceDisplayName}
+      activePreviewPath={activePreviewPath}
       activeTaskId={activeTaskId}
       sidePaneOwnerId={sidePaneOwnerId}
       gitState={gitState}
@@ -1464,6 +1477,7 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
       onOpenDeveloperTools={handleOpenDeveloperTools}
       onOpenTerminalTab={handleOpenTerminalTab}
       onOpenReviewTab={handleToggleGit}
+      onOpenFileTreeTab={handleOpenFileTreePane}
       onOpenSelectionSideConversation={handleOpenSelectionSideConversationLauncher}
       onRevealGitFileInTree={handleRevealGitFileInTree}
       onOpenBrowserUrl={handleOpenBrowserUrl}

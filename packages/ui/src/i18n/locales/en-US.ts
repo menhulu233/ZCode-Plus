@@ -969,6 +969,7 @@ const enUS: Record<string, string> = {
   "sidePane.restoreSize": "Restore panel width",
   "sidePane.addTab": "Add tab",
   "sidePane.openTab": "Open tab",
+  "sidePane.fileTree": "Files",
   "sidePane.subagent": "Subagent",
   "sidePane.subagentDirectory": "Subagents",
   "sidePane.selectionChat": "Side conversation",

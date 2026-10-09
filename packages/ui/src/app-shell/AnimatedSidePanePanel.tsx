@@ -50,6 +50,7 @@ import { WorkflowRunDirectorySidePane } from "@/app-shell/WorkflowRunDirectorySi
 import { WorkflowActorSessionSidePane } from "@/app-shell/WorkflowActorSessionSidePane.js";
 import { WorkflowWorkspaceSidePane } from "@/app-shell/WorkflowWorkspaceSidePane.js";
 import { WorkflowArtifactSidePane } from "@/app-shell/WorkflowArtifactSidePane.js";
+import { WorkspaceFileTreeSidePane } from "@/app-shell/WorkspaceFileTreeSidePane.js";
 import {
   getSidePaneTabTitle,
   SidePaneTabDragOverlay,
@@ -92,6 +93,7 @@ import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import {
   BugIcon,
   FileDiffIcon,
+  FolderTreeIcon,
   GlobeIcon,
   MessageSquareTextIcon,
   PlusIcon,
@@ -288,6 +290,8 @@ export function AnimatedSidePanePanel({
   workspaceAbsPath,
   workspaceIdentity,
   workspaceRemoteSessionId,
+  workspaceName,
+  activePreviewPath = null,
   activeTaskId,
   sidePaneOwnerId,
   gitState,
@@ -315,6 +319,7 @@ export function AnimatedSidePanePanel({
   onOpenDeveloperTools,
   onOpenTerminalTab,
   onOpenReviewTab,
+  onOpenFileTreeTab,
   onOpenSelectionSideConversation,
   onRevealGitFileInTree,
   onOpenBrowserUrl,
@@ -353,6 +358,9 @@ export function AnimatedSidePanePanel({
   workspaceAbsPath: string;
   workspaceIdentity?: string;
   workspaceRemoteSessionId?: string;
+  workspaceName?: string;
+  /** 当前 code-viewer tab 正在预览的文件路径，用于 file-tree tab 高亮。 */
+  activePreviewPath?: string | null;
   activeTaskId: string | null;
   sidePaneOwnerId: string | null;
   gitState: ReturnType<typeof import("@/hooks/useGitRepository.js").useGitRepository>;
@@ -380,6 +388,7 @@ export function AnimatedSidePanePanel({
   onOpenDeveloperTools: () => void;
   onOpenTerminalTab: () => void;
   onOpenReviewTab: () => void;
+  onOpenFileTreeTab: () => void;
   onOpenSelectionSideConversation: () => void;
   onRevealGitFileInTree?: (path: string) => void;
   onOpenBrowserUrl: (url: string) => void;
@@ -448,6 +457,7 @@ export function AnimatedSidePanePanel({
   const previousIsVisibleRef = useRef(isVisible);
   const panelLayout = resolveAnimatedSidePanePanelLayout();
   const hasReviewTab = visibleTabs.some((tab) => tab.type === "git");
+  const hasFileTreeTab = visibleTabs.some((tab) => tab.type === "file-tree");
   const canOpenSelectionSideConversation = shouldOfferSelectionSideConversation({
     activeTaskId,
   });
@@ -715,6 +725,17 @@ export function AnimatedSidePanePanel({
             <span>{intl.formatMessage({ id: "sidePane.review" })}</span>
           </DropdownMenuItem>
         ) : null}
+        {!hasFileTreeTab ? (
+          <DropdownMenuItem
+            data-side-pane-add-item="file-tree"
+            onSelect={() => {
+              onOpenFileTreeTab();
+            }}
+          >
+            <FolderTreeIcon className="size-4" />
+            <span>{intl.formatMessage({ id: "sidePane.fileTree" })}</span>
+          </DropdownMenuItem>
+        ) : null}
         {/* 画板入口未启用 */}
         {/* <DropdownMenuItem
           onSelect={() => {
@@ -773,6 +794,12 @@ export function AnimatedSidePanePanel({
       icon: FileDiffIcon,
       onOpen: onOpenReviewTab,
     },
+    "file-tree": {
+      id: "file-tree",
+      label: intl.formatMessage({ id: "sidePane.fileTree" }),
+      icon: FolderTreeIcon,
+      onOpen: onOpenFileTreeTab,
+    },
     terminal: {
       id: "terminal",
       label: intl.formatMessage({ id: "terminal.title" }),
@@ -796,6 +823,7 @@ export function AnimatedSidePanePanel({
     canOpenSelectionSideConversation,
     developerToolsEnabled,
     hasReviewTab,
+    hasFileTreeTab,
     supportsEmbeddedBrowser,
   })
     .filter((itemId) => !isOfficeMode || (itemId !== "terminal" && itemId !== "review"))
@@ -876,6 +904,7 @@ export function AnimatedSidePanePanel({
         relativeTime: (timestamp) => formatTaskRelativeTime(timestamp, intl),
         browserTitle: intl.formatMessage({ id: "browser.title" }),
         reviewTitle: intl.formatMessage({ id: "sidePane.review" }),
+        fileTreeTitle: intl.formatMessage({ id: "sidePane.fileTree" }),
         codeViewerTitle: intl.formatMessage({ id: "codeViewer.title" }),
         treemappingTitle: intl.formatMessage({ id: "treemapping.title" }),
         whiteboardTitle: intl.formatMessage({ id: "whiteboard.title" }),
@@ -1222,6 +1251,19 @@ export function AnimatedSidePanePanel({
                             onClose={onCloseGit}
                             onRefresh={onRefreshGit}
                             onRevealFileInTree={onRevealGitFileInTree}
+                          />
+                        ) : tab.type === "file-tree" ? (
+                          <WorkspaceFileTreeSidePane
+                            workspacePath={workspaceAbsPath}
+                            workspaceName={workspaceName}
+                            workspaceIdentity={workspaceIdentity}
+                            workspaceRemoteSessionId={workspaceRemoteSessionId}
+                            activePreviewPath={activePreviewPath}
+                            canOpenLocalFileManager={isDesktop}
+                            onClose={() => onCloseTab(tab.id)}
+                            // 与左侧栏文件树同一约束：桌面端才有本地文件管理器跳转。
+                            onOpenBrowserUrl={isDesktop ? onOpenBrowserUrl : undefined}
+                            onOpenCodeViewer={onOpenCodeViewer}
                           />
                         ) : tab.type === "treemapping" ? (
                           <TreemappingPane

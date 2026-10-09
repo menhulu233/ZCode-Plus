@@ -33,6 +33,18 @@ export interface GitSidePaneTab {
   openedAt?: number;
 }
 
+/**
+ * 右侧面板的工作区文件树 tab。单例（固定 id），内容始终指向当前 workspace；
+ * 树数据由 `WorkspaceFileTree` 自行经 `IFileService` 拉取，tab 不携带树状态。
+ */
+export interface FileTreeSidePaneTab {
+  id: "file-tree";
+  type: "file-tree";
+  ownerTaskId?: string | null;
+  workspaceKey?: string | null;
+  openedAt?: number;
+}
+
 export interface CodeViewerSidePaneTab {
   id: string;
   type: "code-viewer";
@@ -517,6 +529,7 @@ export type WorkspaceSidePaneTab =
   | BackgroundBashSidePaneTab
   | BrowserSidePaneTab
   | GitSidePaneTab
+  | FileTreeSidePaneTab
   | CodeViewerSidePaneTab
   | TreemappingSidePaneTab
   | WhiteboardSidePaneTab
@@ -648,6 +661,10 @@ function createBrowserSidePaneTab(options?: {
 
 function createGitSidePaneTab(): GitSidePaneTab {
   return { id: "git", type: "git", openedAt: Date.now() };
+}
+
+function createFileTreeSidePaneTab(): FileTreeSidePaneTab {
+  return { id: "file-tree", type: "file-tree", openedAt: Date.now() };
 }
 
 function createModelTrajectorySidePaneTab(options: {
@@ -1558,6 +1575,12 @@ export function activateGitSidePane(
   current: WorkspaceSidePaneState | null,
 ): WorkspaceSidePaneState {
   return activateSidePaneTab(current, createGitSidePaneTab());
+}
+
+export function openFileTreeSidePane(
+  current: WorkspaceSidePaneState | null,
+): WorkspaceSidePaneState {
+  return activateSidePaneTab(current, createFileTreeSidePaneTab());
 }
 
 export function openWhiteboardSidePane(
