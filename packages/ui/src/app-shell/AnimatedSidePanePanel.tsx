@@ -88,6 +88,7 @@ import {
   type WorkspaceSidePaneState,
 } from "@/lib/workspaceSidePane.js";
 import { inferMediaPreview, type CodeViewerSource } from "@/lib/codeViewer.js";
+import type { FileTreeTarget } from "@/lib/fileTreeTarget.js";
 import type { MessageFileLinkTarget } from "@/components/ai-elements/message.js";
 import { getVisibleSidePaneTabs } from "@/lib/workspaceSidePane.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
@@ -292,6 +293,7 @@ export function AnimatedSidePanePanel({
   workspaceIdentity,
   workspaceRemoteSessionId,
   workspaceName,
+  fileTreeTarget = null,
   activePreviewPath = null,
   activeTaskId,
   sidePaneOwnerId,
@@ -361,6 +363,8 @@ export function AnimatedSidePanePanel({
   workspaceIdentity?: string;
   workspaceRemoteSessionId?: string;
   workspaceName?: string;
+  /** reveal 请求改指的 file-tree tab 浏览目标；null 时回落当前活动 workspace。 */
+  fileTreeTarget?: FileTreeTarget | null;
   /** 当前 code-viewer tab 正在预览的文件路径，用于 file-tree tab 高亮。 */
   activePreviewPath?: string | null;
   activeTaskId: string | null;
@@ -1266,14 +1270,16 @@ export function AnimatedSidePanePanel({
                           />
                         ) : tab.type === "file-tree" ? (
                           <WorkspaceFileTreeSidePane
-                            workspacePath={workspaceAbsPath}
-                            workspaceName={workspaceName}
-                            workspaceIdentity={workspaceIdentity}
-                            workspaceRemoteSessionId={workspaceRemoteSessionId}
+                            fileTreeTarget={fileTreeTarget}
+                            fallbackWorkspace={{
+                              workspacePath: workspaceAbsPath,
+                              workspaceName,
+                              workspaceIdentity,
+                              workspaceRemoteSessionId,
+                            }}
                             activePreviewPath={activePreviewPath}
                             canOpenLocalFileManager={isDesktop}
-                            onClose={() => onCloseTab(tab.id)}
-                            // 与左侧栏文件树同一约束：桌面端才有本地文件管理器跳转。
+                            // 与既有约定一致：桌面端才有本地文件管理器跳转。
                             onOpenBrowserUrl={isDesktop ? onOpenBrowserUrl : undefined}
                             onOpenCodeViewer={onOpenCodeViewer}
                           />

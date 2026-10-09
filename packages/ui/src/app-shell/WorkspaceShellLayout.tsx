@@ -48,7 +48,7 @@ import { AutomationsMainBreadcrumbFrame } from "@/settings/AutomationsMainBreadc
 import { PluginStorePage } from "@/settings/PluginStorePage.js";
 import { TaskFindDialog } from "@/quickpick/TaskFindDialog.js";
 import { WorkspaceHeader } from "@/WorkspaceHeader.js";
-import { WorkspaceSidebar, type SidebarFileTreeOpenRequest } from "@/WorkspaceSidebar.js";
+import { WorkspaceSidebar } from "@/WorkspaceSidebar.js";
 import { AnimatedSidePanePanel } from "@/app-shell/AnimatedSidePanePanel.js";
 import {
   findScreenshotSurfaceTabForRender,
@@ -72,6 +72,7 @@ import { getGitDirtyFileCount } from "@/git-branch-switcher/display.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { getPathLeaf, toFileUrl } from "@/lib/path.js";
+import type { FileTreeTarget } from "@/lib/fileTreeTarget.js";
 import { shouldOpenAssistantHtmlInBrowser } from "@/lib/assistantPreviewCards.js";
 import { setWorkspaceSidebarResizeActive } from "@/lib/workspaceSidebarResizeState.js";
 import { buildTaskWorkspaceKey } from "@/lib/taskQueryCache.js";
@@ -356,11 +357,9 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
   const collapsedSidebarWidthPx = hasDesktopPanelInset ? 4 : 0;
   const [draftHeaderDropTargetController, setDraftHeaderDropTargetController] =
     useState<ConversationDropTargetController | null>(null);
-  const fileTreeOpenRequestIdRef = useRef(0);
-  const [fileTreeOpenRequest, setFileTreeOpenRequest] = useState<SidebarFileTreeOpenRequest | null>(
-    null,
-  );
-  const [isSidebarFileTreeOpen, setIsSidebarFileTreeOpen] = useState(false);
+  // Side Pane file-tree tab 的浏览目标：reveal 请求（markdown 链接、Git/产物定位）改指
+  // 任意 workspace 或外部目录；null 时 tab 回落当前活动 workspace。
+  const [fileTreeTarget, setFileTreeTarget] = useState<FileTreeTarget | null>(null);
   const workspaceKey = workspaceIdentity?.trim() || workspaceAbsPath;
   const screenshotSurfaceRequest = useBrowserScreenshotSurfaceRequest(sidePaneState?.tabs ?? []);
   const screenshotSurfaceTab = screenshotSurfaceRequest
@@ -429,9 +428,7 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
   });
   const workspaceSessionActionDisabled =
     Boolean(workspaceReadOnlyReason) || reloadSessionDisabled || reloadSessionPending;
-  // 文件树打开时任务列表整屏滑出，侧栏里的 New Task 入口也随之不可见。
-  // 顶部浮层需要临时露出 New Task，关闭文件树后继续沿用侧栏收起态规则。
-  const showTopOverlayNewTaskButton = !isSidebarVisible || isSidebarFileTreeOpen;
+  const showTopOverlayNewTaskButton = !isSidebarVisible;
   const workspaceSidebarResizeLabel = intl.formatMessage({
     id: "workspaceSidebar.resizeSidebar",
   });
@@ -821,13 +818,18 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
     },
     [workspaceIdentity, workspaceTabs],
   );
-  const openFileTreeRequest = useCallback((request: Omit<SidebarFileTreeOpenRequest, "id">) => {
-    fileTreeOpenRequestIdRef.current += 1;
-    setFileTreeOpenRequest({
-      id: fileTreeOpenRequestIdRef.current,
-      ...request,
-    });
-  }, []);
+  const openFileTreeTarget = useCallback(
+    (target: FileTreeTarget) => {
+      setFileTreeTarget(target);
+      handleOpenFileTreePane();
+    },
+    [handleOpenFileTreePane],
+  );
+  // 启动器打开 = 回到默认目标（当前活动 workspace）；reveal 路径不经过这里。
+  const handleOpenFileTreeTabFromLauncher = useCallback(() => {
+    setFileTreeTarget(null);
+    handleOpenFileTreePane();
+  }, [handleOpenFileTreePane]);
   const showChatMainView = useCallback(() => {
     onWorkspaceMainViewChange("chat");
   }, [onWorkspaceMainViewChange]);
@@ -1303,13 +1305,11 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
         }
 
         if (target.serviceScope === "base-local") {
-          openFileTreeRequest({
-            target: {
-              workspacePath: target.path,
-              workspaceName: target.label || getPathLeaf(target.path),
-              revealPath: target.path,
-              temporaryExternalDirectory: true,
-            },
+          openFileTreeTarget({
+            workspacePath: target.path,
+            workspaceName: target.label || getPathLeaf(target.path),
+            revealPath: target.path,
+            temporaryExternalDirectory: true,
           });
           return;
         }
@@ -1320,27 +1320,23 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
           target.workspaceRemoteSessionId,
         );
         if (ownerWorkspace) {
-          openFileTreeRequest({
-            target: {
-              workspacePath: ownerWorkspace.workspacePath,
-              workspaceName: ownerWorkspace.label,
-              workspaceIdentity: ownerWorkspace.workspaceIdentity,
-              workspaceRemoteSessionId: ownerWorkspace.remoteSessionId,
-              revealPath: areWorkspaceFilePathsEqual(ownerWorkspace.workspacePath, target.path)
-                ? undefined
-                : target.path,
-            },
+          openFileTreeTarget({
+            workspacePath: ownerWorkspace.workspacePath,
+            workspaceName: ownerWorkspace.label,
+            workspaceIdentity: ownerWorkspace.workspaceIdentity,
+            workspaceRemoteSessionId: ownerWorkspace.remoteSessionId,
+            revealPath: areWorkspaceFilePathsEqual(ownerWorkspace.workspacePath, target.path)
+              ? undefined
+              : target.path,
           });
           return;
         }
 
-        openFileTreeRequest({
-          target: {
-            workspacePath: target.path,
-            workspaceName: target.label || getPathLeaf(target.path),
-            revealPath: target.path,
-            temporaryExternalDirectory: true,
-          },
+        openFileTreeTarget({
+          workspacePath: target.path,
+          workspaceName: target.label || getPathLeaf(target.path),
+          revealPath: target.path,
+          temporaryExternalDirectory: true,
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -1369,7 +1365,7 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
       handleOpenBrowserUrl,
       handleOpenCodeViewer,
       intl,
-      openFileTreeRequest,
+      openFileTreeTarget,
       services.fileService,
       workspaceReadOnlyReason,
     ],
@@ -1386,18 +1382,16 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
       if (workspaceReadOnlyReason) {
         return;
       }
-      openFileTreeRequest({
-        target: {
-          workspacePath: workspaceAbsPath,
-          workspaceName: projectName,
-          workspaceIdentity,
-          workspaceRemoteSessionId,
-          revealPath: path,
-        },
+      openFileTreeTarget({
+        workspacePath: workspaceAbsPath,
+        workspaceName: projectName,
+        workspaceIdentity,
+        workspaceRemoteSessionId,
+        revealPath: path,
       });
     },
     [
-      openFileTreeRequest,
+      openFileTreeTarget,
       projectName,
       workspaceAbsPath,
       workspaceIdentity,
@@ -1450,6 +1444,7 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
       workspaceIdentity={workspaceIdentity}
       workspaceRemoteSessionId={workspaceRemoteSessionId}
       workspaceName={workspaceDisplayName}
+      fileTreeTarget={fileTreeTarget}
       activePreviewPath={activePreviewPath}
       activeTaskId={activeTaskId}
       sidePaneOwnerId={sidePaneOwnerId}
@@ -1479,7 +1474,7 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
       onOpenDeveloperTools={handleOpenDeveloperTools}
       onOpenTerminalTab={handleOpenTerminalTab}
       onOpenReviewTab={handleToggleGit}
-      onOpenFileTreeTab={handleOpenFileTreePane}
+      onOpenFileTreeTab={handleOpenFileTreeTabFromLauncher}
       onOpenSelectionSideConversation={handleOpenSelectionSideConversationLauncher}
       onRevealGitFileInTree={handleRevealGitFileInTree}
       onOpenBrowserUrl={handleOpenBrowserUrl}
@@ -1576,12 +1571,8 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
                   <WorkspaceSidebar
                     workspacePath={workspaceAbsPath}
                     workspaceRemoteSessionId={workspaceRemoteSessionId}
-                    activePreviewPath={activePreviewPath}
                     onSelectTask={handleSelectTaskInChat}
                     onStartDraftInWorkspace={handleCreateProjectDraft}
-                    onOpenCodeViewer={handleOpenCodeViewer}
-                    onOpenBrowserUrl={handleOpenBrowserUrl}
-                    fileTreeOpenRequest={fileTreeOpenRequest}
                     onCreateTask={handleCreateTaskInChat}
                     onCreateConversationTask={onCreateConversationTask ?? handleCreateTaskInChat}
                     onOpenFolderFromWorkspaceMenu={onOpenFolderFromWorkspaceMenu}
@@ -1616,7 +1607,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
                     automationsActive={workspaceMainView === "automations"}
                     onOpenPluginStore={handleOpenPluginStore}
                     pluginStoreActive={workspaceMainView === "plugin-store"}
-                    onFileTreeOpenChange={setIsSidebarFileTreeOpen}
                   />
                 </WorkflowRunOpenProvider>
               </V4SplitPaneEntryProvider>

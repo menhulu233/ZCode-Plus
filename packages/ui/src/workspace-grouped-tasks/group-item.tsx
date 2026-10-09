@@ -60,7 +60,6 @@ export function GroupItem({
   getTaskWorkspaceLabel,
   onSelectTask,
   onCloseTask,
-  onOpenFileTree,
   onCreateTask,
   hasDraftTask,
   draftTaskActive,
@@ -92,7 +91,6 @@ export function GroupItem({
   getTaskWorkspaceLabel: (task: ZCodeTaskMeta) => string;
   onSelectTask: (workspacePath: string, taskId: string, workspaceIdentity?: string) => void;
   onCloseTask: (task: ZCodeTaskMeta) => void;
-  onOpenFileTree?: (task: ZCodeTaskMeta) => void;
   onCreateTask: () => void;
   hasDraftTask?: boolean;
   draftTaskActive?: boolean;
@@ -701,7 +699,6 @@ export function GroupItem({
                     activeTaskId={activeTaskId}
                     onSelectTask={onSelectTask}
                     onCloseTask={onCloseTask}
-                    onOpenFileTree={onOpenFileTree}
                     onMoveTaskToGroup={onMoveTaskToGroup}
                     onMoveTaskToTop={onMoveTaskToTop}
                     onStartRenameTask={onStartRenameTask}
@@ -728,7 +725,6 @@ export function GroupItem({
                       activeTaskId={activeTaskId}
                       onSelectTask={onSelectTask}
                       onCloseTask={onCloseTask}
-                      onOpenFileTree={onOpenFileTree}
                       onMoveTaskToGroup={onMoveTaskToGroup}
                       onMoveTaskToTop={onMoveTaskToTop}
                       onStartRenameTask={onStartRenameTask}

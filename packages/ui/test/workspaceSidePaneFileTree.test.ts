@@ -6,6 +6,7 @@ import {
   type WorkspaceSidePaneState,
 } from "../src/lib/workspaceSidePane.js";
 import { resolveOpenTabLauncherItemIds } from "../src/app-shell/animatedSidePanePanelModel.js";
+import { resolveSidePaneFileTreeTarget } from "../src/lib/fileTreeTarget.js";
 
 function createGitOnlyState(): WorkspaceSidePaneState {
   return { tabs: [{ id: "git", type: "git", openedAt: 1 }], activeTabId: "git" };
@@ -73,4 +74,38 @@ test("resolveOpenTabLauncherItemIds hides the file-tree entry once the tab exist
     hasFileTreeTab: true,
   });
   assert.ok(!withTab.includes("file-tree"));
+});
+
+test("resolveSidePaneFileTreeTarget falls back to the active workspace when no target is set", () => {
+  const fallback = {
+    workspacePath: "/repo",
+    workspaceName: "repo",
+    workspaceIdentity: "identity-1",
+    workspaceRemoteSessionId: "session-1",
+  };
+
+  assert.deepEqual(resolveSidePaneFileTreeTarget(null, fallback), {
+    workspacePath: "/repo",
+    workspaceName: "repo",
+    workspaceIdentity: "identity-1",
+    workspaceRemoteSessionId: "session-1",
+  });
+  assert.deepEqual(resolveSidePaneFileTreeTarget(undefined, fallback), {
+    workspacePath: "/repo",
+    workspaceName: "repo",
+    workspaceIdentity: "identity-1",
+    workspaceRemoteSessionId: "session-1",
+  });
+});
+
+test("resolveSidePaneFileTreeTarget keeps the reveal target untouched", () => {
+  const fallback = { workspacePath: "/repo" };
+  const target = {
+    workspacePath: "/external/dir",
+    workspaceName: "dir",
+    revealPath: "/external/dir/README.md",
+    temporaryExternalDirectory: true,
+  };
+
+  assert.deepEqual(resolveSidePaneFileTreeTarget(target, fallback), target);
 });

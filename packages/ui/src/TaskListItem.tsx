@@ -1,15 +1,6 @@
 /* eslint-disable max-lines -- task item 同时承载默认列表和 timeline 两行布局的共享交互，先保持动作链路集中避免归档/置顶回归。 */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Archive,
-  Clock,
-  CloudUpload,
-  ListTree,
-  LoaderIcon,
-  Moon,
-  Pin,
-  Smartphone,
-} from "lucide-react";
+import { Archive, Clock, CloudUpload, LoaderIcon, Moon, Pin, Smartphone } from "lucide-react";
 import { isCronTask, isOffPeakTask, type ZCodeTaskMeta } from "@zcode/shared";
 import { TID_TASK_ARCHIVE, TID_TASK_ITEM, testId } from "@zcode/shared";
 import { Badge } from "@/components/ui/badge.js";
@@ -68,7 +59,6 @@ interface TaskListItemProps {
   onArchiveTask: (taskId: string) => void;
   onMarkTaskAsUnread: (taskId: string) => void;
   onOpenTaskContextMenu?: (taskId: string) => void;
-  onOpenFileTree?: (task: ZCodeTaskMeta) => void;
   variant?: "default" | "timeline";
   showPinAction?: boolean;
   intl: TaskListItemIntl;
@@ -127,8 +117,7 @@ function areTaskListItemPropsEqual(left: TaskListItemProps, right: TaskListItemP
     left.onStartRenameTask === right.onStartRenameTask &&
     left.onArchiveTask === right.onArchiveTask &&
     left.onMarkTaskAsUnread === right.onMarkTaskAsUnread &&
-    left.onOpenTaskContextMenu === right.onOpenTaskContextMenu &&
-    left.onOpenFileTree === right.onOpenFileTree
+    left.onOpenTaskContextMenu === right.onOpenTaskContextMenu
   );
 }
 
@@ -145,7 +134,6 @@ export const MemoTaskItem = memo(function TaskListItem({
   isArchiveConfirming,
   onTogglePinTask,
   onOpenTaskContextMenu,
-  onOpenFileTree,
   variant = "default",
   showPinAction = true,
   intl,
@@ -305,23 +293,6 @@ export const MemoTaskItem = memo(function TaskListItem({
   const handleContextMenu = useCallback(() => {
     onOpenTaskContextMenu?.(task.taskId);
   }, [onOpenTaskContextMenu, task.taskId]);
-  const handleOpenFileTree = useCallback(
-    (event: React.MouseEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (workspaceActionsDisabled) {
-        return;
-      }
-      runUserAction({
-        input: { featureId: "workbench.file", action: "open_tree", trigger: "button" },
-        operation: () => onOpenFileTree?.(task),
-        completed: { resultSource: "local_commit" },
-        failureStage: "file_tree_open",
-      });
-    },
-    [onOpenFileTree, task, workspaceActionsDisabled],
-  );
-
   const handleArchive = useCallback(
     (event: React.MouseEvent) => {
       if (workspaceActionsDisabled) {
@@ -458,34 +429,11 @@ export const MemoTaskItem = memo(function TaskListItem({
       )}
     </div>
   ) : null;
-  // 远端 task 的 session 未就绪时 resolver 会拒绝打开；渲染层同步隐藏入口，
-  // 避免展示一个点击后无反馈的按钮。本地 task 不依赖已打开 tab，仍可直接按路径打开。
-  const canOpenFileTree =
-    Boolean(onOpenFileTree) && (!task.workspaceIdentity?.trim() || Boolean(remoteSessionId));
-  const fileTreeActionNode =
-    canOpenFileTree &&
-    !workspaceActionsDisabled &&
-    !hasPendingInteraction &&
-    (shouldMountWorkspaceTaskActions || isMobileActive) ? (
-      <span className="inline-flex shrink-0">
-        {/* Pinned 文件树按钮曾手写 hover 背景和 tooltip，导致与 Grouped task
-            的同一操作视觉不一致。直接复用共享 action，统一 bg-hover、尺寸和 pointer 行为。 */}
-        <TaskRowActionButton
-          label={intl.formatMessage({ id: "git.action.showTree" })}
-          onClick={handleOpenFileTree}
-          showTooltip
-        >
-          <ListTree className="size-3.5" />
-        </TaskRowActionButton>
-      </span>
-    ) : null;
-  const taskActionGroupNode =
-    fileTreeActionNode || archiveActionNode ? (
-      <span data-task-row-actions="true" className="flex shrink-0 items-center gap-0.5">
-        {fileTreeActionNode}
-        {archiveActionNode}
-      </span>
-    ) : null;
+  const taskActionGroupNode = archiveActionNode ? (
+    <span data-task-row-actions="true" className="flex shrink-0 items-center gap-0.5">
+      {archiveActionNode}
+    </span>
+  ) : null;
   const pinActionButton = (
     <Button
       type="button"

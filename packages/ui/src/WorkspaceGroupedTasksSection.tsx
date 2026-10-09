@@ -28,7 +28,6 @@ import { shouldHideGroupedTaskContent, useGroupedTaskView } from "@/hooks/useGro
 import type { WorkspaceTabState } from "@/store/tabStore.js";
 import { buildTaskWorkspaceKey } from "@/lib/taskQueryCache.js";
 import { getPathLeaf } from "@/lib/path.js";
-import { resolveTaskFileTreeTargetFromTabs } from "@/lib/taskFileTreeTarget.js";
 import { toast } from "@/components/ui/toast.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { selectWorkspaceZCodeState, useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
@@ -525,7 +524,6 @@ export function WorkspaceGroupedTasksSection({
   activeTaskId,
   onSelectTask,
   onCreateTask,
-  onOpenFileTree,
   onCreateGroupActionChange,
   onCreateDraftTaskActionChange,
   collapsedGroupIds,
@@ -540,12 +538,6 @@ export function WorkspaceGroupedTasksSection({
   activeTaskId: string | null;
   onSelectTask: (workspacePath: string, taskId: string, workspaceIdentity?: string) => void;
   onCreateTask: (request?: CreateTaskRequest) => void;
-  onOpenFileTree?: (target: {
-    workspacePath: string;
-    workspaceName: string;
-    workspaceIdentity?: string;
-    workspaceRemoteSessionId?: string;
-  }) => void;
   onCreateGroupActionChange?: (action: (() => void) | null) => void;
   onCreateDraftTaskActionChange?: (action: (() => void) | null) => void;
   collapsedGroupIds: ReadonlySet<string>;
@@ -887,17 +879,6 @@ export function WorkspaceGroupedTasksSection({
       workspaceServiceLookup.get(buildTaskWorkspaceKey(task.workspacePath, task.workspaceIdentity))
         ?.remoteSessionId,
     [workspaceServiceLookup],
-  );
-
-  const handleOpenTaskFileTree = useCallback(
-    (task: ZCodeTaskMeta) => {
-      const target = resolveTaskFileTreeTargetFromTabs(task, workspaceTabs);
-      if (!onOpenFileTree || !target) {
-        return;
-      }
-      onOpenFileTree(target);
-    },
-    [onOpenFileTree, workspaceTabs],
   );
 
   const handleCreateGroup = useCallback(() => {
@@ -1531,7 +1512,6 @@ export function WorkspaceGroupedTasksSection({
             getTaskWorkspaceLabel={getTaskWorkspaceLabel}
             onSelectTask={onSelectTask}
             onCloseTask={handleCloseTask}
-            onOpenFileTree={onOpenFileTree ? handleOpenTaskFileTree : undefined}
             onCreateTask={() =>
               node.group.id === OFF_PEAK_DEFAULT_GROUP_ID
                 ? onOpenAutomations?.()
@@ -1574,7 +1554,6 @@ export function WorkspaceGroupedTasksSection({
           activeTaskId={activeTaskId}
           onSelectTask={onSelectTask}
           onCloseTask={handleCloseTask}
-          onOpenFileTree={onOpenFileTree ? handleOpenTaskFileTree : undefined}
           onMoveTaskToGroup={handleMoveTaskToGroup}
           onMoveTaskToTop={handleMoveTaskToTop}
           onStartRenameTask={handleStartRenameTask}
@@ -1605,7 +1584,6 @@ export function WorkspaceGroupedTasksSection({
       handleMoveTaskToGroup,
       handleMoveTaskToTop,
       handleNewGroupSetupStarted,
-      handleOpenTaskFileTree,
       handleRenameGroup,
       handleToggleGroupCollapsed,
       handleUngroupGroup,
@@ -1614,7 +1592,6 @@ export function WorkspaceGroupedTasksSection({
       handleStartRenameTask,
       isGroupedDraftActive,
       newGroupSetupId,
-      onOpenFileTree,
       onSelectTask,
     ],
   );
@@ -1661,7 +1638,6 @@ export function WorkspaceGroupedTasksSection({
             activeTaskId={activeTaskId}
             onSelectTask={onSelectTask}
             onCloseTask={handleCloseTask}
-            onOpenFileTree={onOpenFileTree ? handleOpenTaskFileTree : undefined}
             onMoveTaskToGroup={handleMoveTaskToGroup}
             onMoveTaskToTop={handleMoveTaskToTop}
             onStartRenameTask={handleStartRenameTask}

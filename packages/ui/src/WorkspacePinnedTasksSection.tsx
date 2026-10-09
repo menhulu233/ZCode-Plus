@@ -10,7 +10,6 @@ import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { buildTaskWorkspaceKey } from "@/lib/taskQueryCache.js";
 import { compareZCodeTaskListItems } from "@/lib/taskListOrdering.js";
-import { resolveTaskFileTreeTargetFromTabs } from "@/lib/taskFileTreeTarget.js";
 import { MemoTaskItem, TaskListItemContextMenuContent } from "@/TaskListItem.js";
 import { TaskRenameDialog } from "@/TaskRenameDialog.js";
 import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
@@ -36,7 +35,6 @@ interface PinnedTaskItemHandlers {
   onArchiveTask: (taskId: string) => void;
   onMarkTaskAsUnread: (taskId: string) => void;
   onOpenTaskContextMenu: (taskId: string) => void;
-  onOpenFileTree: (task: ZCodeTaskMeta) => void;
 }
 
 function PinnedTasksSectionTitle({ title }: { title: string }) {
@@ -50,7 +48,6 @@ export function WorkspacePinnedTasksSection({
   activeTaskId,
   taskSortBy,
   onSelectTask,
-  onOpenFileTree,
 }: {
   workspaceTabs: WorkspaceTabState[];
   activeWorkspacePath: string;
@@ -63,12 +60,6 @@ export function WorkspacePinnedTasksSection({
     targetWorkspaceIdentity?: string,
     expectedUnreadAt?: number,
   ) => void;
-  onOpenFileTree?: (target: {
-    workspacePath: string;
-    workspaceName: string;
-    workspaceIdentity?: string;
-    workspaceRemoteSessionId?: string;
-  }) => void;
 }) {
   const { intl } = useZCodeIntl();
   const baseServices = useBaseWorkspaceServices();
@@ -166,10 +157,6 @@ export function WorkspacePinnedTasksSection({
   }, [items]);
   const itemByKeyRef = useRef(itemByKey);
   itemByKeyRef.current = itemByKey;
-  const workspaceTabsRef = useRef(workspaceTabs);
-  workspaceTabsRef.current = workspaceTabs;
-  const onOpenFileTreeRef = useRef(onOpenFileTree);
-  onOpenFileTreeRef.current = onOpenFileTree;
 
   const resolveTaskServices = useCallback(
     (workspaceIdentity?: string) => {
@@ -407,12 +394,6 @@ export function WorkspacePinnedTasksSection({
           onOpenTaskContextMenu: () => {
             openPinnedItemContextMenu(itemKey);
           },
-          onOpenFileTree: (task) => {
-            const target = resolveTaskFileTreeTargetFromTabs(task, workspaceTabsRef.current);
-            if (target) {
-              onOpenFileTreeRef.current?.(target);
-            }
-          },
         };
         taskItemHandlersByKeyRef.current.set(itemKey, handlers);
       }
@@ -569,7 +550,6 @@ export function WorkspacePinnedTasksSection({
                   onArchiveTask={handlers.onArchiveTask}
                   onMarkTaskAsUnread={handlers.onMarkTaskAsUnread}
                   onOpenTaskContextMenu={handlers.onOpenTaskContextMenu}
-                  onOpenFileTree={onOpenFileTree ? handlers.onOpenFileTree : undefined}
                   intl={intl}
                 />
               );
