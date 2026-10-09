@@ -1,11 +1,13 @@
-import { accessSync, chmodSync, constants, existsSync, statSync } from "node:fs";
+/* eslint-disable max-lines -- 终端服务集中承载 PTY 生命周期、shell/cwd 探测与 profile 解析；新增的 listShells/getSessionCwd 与 create 同属一个服务实现。 */
+import { accessSync, chmodSync, constants, existsSync, readlinkSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { homedir, release } from "node:os";
-import { delimiter, dirname, join, resolve } from "node:path";
+import { basename, delimiter, dirname, join, resolve } from "node:path";
 import { Emitter, type Event } from "@zcode/rpc";
 import type { IPty } from "node-pty";
 import type { ISettingService } from "../setting/setting.js";
-import type { ITerminalService, TerminalWindowsPtyInfo } from "./terminal.js";
+import type { ITerminalService, TerminalShellOption, TerminalWindowsPtyInfo } from "./terminal.js";
 import {
   resolveTerminalFontProfile,
   type TerminalFontFamilySource,
@@ -86,6 +88,124 @@ function isExecutable(command: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * 解析 shell 候选为绝对可执行路径；不可执行返回 null。
+ * 与 isExecutable 同一判定，但保留归一化后的路径供 listShells 去重。
+ */
+function resolveExecutablePath(command: string): string | null {
+  try {
+    if (/[\\/]/.test(command)) {
+      accessSync(command, constants.X_OK);
+      return resolve(command);
+    }
+
+    const pathEnv = process.env.PATH;
+    if (!pathEnv) return null;
+
+    for (const dir of pathEnv.split(delimiter)) {
+      if (!dir) continue;
+      const candidate = join(dir, command);
+      try {
+        accessSync(candidate, constants.X_OK);
+        return resolve(candidate);
+      } catch {
+        continue;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** 读取 PTY shell 进程的当前工作目录（新建会话继承目录用）。 */
+function readTerminalProcessCwd(pid: number): string | null {
+  if (process.platform === "linux") {
+    try {
+      return readlinkSync(`/proc/${pid}/cwd`);
+    } catch {
+      // 进程刚退出或 /proc 不可读时目录事实缺失，由 UI 回退 workspace 根目录。
+      return null;
+    }
+  }
+
+  if (process.platform === "darwin") {
+    try {
+      // lsof 的 -Fn 输出里 cwd 行以 n 前缀携带路径。
+      const output = execFileSync("lsof", ["-a", `-p${pid}`, "-d", "cwd", "-Fn"], {
+        encoding: "utf8",
+        timeout: 2_000,
+      });
+      const match = output.match(/^n(.+)$/m);
+      return match?.[1] ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Windows 进程 cwd 需要原生句柄查询，本期不实现；UI 回退 workspace 根目录。
+  return null;
+}
+
+/** 枚举本机可用终端 shell，按候选顺序去重（$SHELL 优先）。 */
+function listAvailableShells(): TerminalShellOption[] {
+  if (process.platform === "win32") {
+    const candidates: Array<{ command: string; name: string }> = [
+      { command: "pwsh.exe", name: "PowerShell" },
+      { command: "powershell.exe", name: "Windows PowerShell" },
+      { command: process.env.ComSpec || "cmd.exe", name: "Command Prompt" },
+      { command: "C:\\Program Files\\Git\\bin\\bash.exe", name: "Git Bash" },
+      { command: "C:\\Program Files (x86)\\Git\\bin\\bash.exe", name: "Git Bash" },
+    ];
+
+    // 用户在下拉里按名字选择：同名只保留候选顺序中的第一个，避免
+    // 「两个 bash」这类重复项制造困惑。
+    const seenNames = new Set<string>();
+    const shells: TerminalShellOption[] = [];
+    for (const candidate of candidates) {
+      const path = resolveExecutablePath(candidate.command);
+      if (!path || seenNames.has(candidate.name)) continue;
+      seenNames.add(candidate.name);
+      shells.push({ path, name: candidate.name });
+    }
+    return shells;
+  }
+
+  const candidates = [
+    process.env.SHELL,
+    "/bin/zsh",
+    "/usr/bin/zsh",
+    "/opt/homebrew/bin/zsh",
+    "/usr/local/bin/zsh",
+    "/bin/bash",
+    "/usr/bin/bash",
+    "/usr/local/bin/bash",
+    "/opt/homebrew/bin/bash",
+    "/bin/fish",
+    "/usr/bin/fish",
+    "/usr/local/bin/fish",
+    "/opt/homebrew/bin/fish",
+    "/usr/bin/pwsh",
+    "/usr/local/bin/pwsh",
+    "/opt/homebrew/bin/pwsh",
+    "/bin/sh",
+  ].filter((command): command is string => Boolean(command));
+
+  // 同名 shell（如 /bin/bash 与 /usr/bin/bash 是两个真实路径）只展示一项：
+  // 用户按名字选择，重复名只会制造困惑；保留候选顺序中的第一个（$SHELL 优先）。
+  const seenNames = new Set<string>();
+  const shells: TerminalShellOption[] = [];
+  for (const candidate of candidates) {
+    const path = resolveExecutablePath(candidate);
+    if (!path) continue;
+    const name = basename(path);
+    if (seenNames.has(name)) continue;
+    seenNames.add(name);
+    shells.push({ path, name });
+  }
+  return shells;
 }
 
 function isUsableDirectory(path: string): boolean {
@@ -350,7 +470,7 @@ export function createTerminalService(dependencies: {
   }
 
   const service: ITerminalService & { disposeAll(): void } = {
-    async create(params: { cols: number; rows: number; cwd?: string }): Promise<{
+    async create(params: { cols: number; rows: number; cwd?: string; shell?: string }): Promise<{
       id: string;
       shell: string;
       fontFamily: string;
@@ -360,7 +480,13 @@ export function createTerminalService(dependencies: {
       windowsPty?: TerminalWindowsPtyInfo;
     }> {
       const id = String(nextId++);
-      const shell = resolveTerminalShell();
+      const explicitShell = params.shell?.trim();
+      // 显式选择的 shell 来自 listShells，理论上已验证可执行；这里再验一次并给清晰报错，
+      // 避免坏路径直接落进 posix_spawnp 产生难定位的 spawn 失败。
+      if (explicitShell && !isExecutable(explicitShell)) {
+        throw new Error(`Selected shell is not executable: ${explicitShell}`);
+      }
+      const shell = explicitShell || resolveTerminalShell();
       const cwd = resolveTerminalCwd(params.cwd);
       const env = resolveTerminalEnv();
       const terminalProfileSettings = await dependencies.settingService.get().catch(() => ({
@@ -422,6 +548,18 @@ export function createTerminalService(dependencies: {
 
     async dispose(params: { id: string }): Promise<void> {
       cleanupTerminal(params.id);
+    },
+
+    async getSessionCwd(params: { id: string }): Promise<string | null> {
+      const terminal = terminals.get(params.id);
+      if (!terminal) {
+        return null;
+      }
+      return readTerminalProcessCwd(terminal.pty.pid);
+    },
+
+    async listShells(): Promise<TerminalShellOption[]> {
+      return listAvailableShells();
     },
 
     onDynamicData(id: string): Event<string> {
