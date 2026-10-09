@@ -95,6 +95,7 @@ interface ConversationTurnGroupProps {
   context: ConversationRowRenderContext;
   onFork?: (target: ConversationRowTarget) => void;
   onRetry?: (target: ConversationRowTarget) => void;
+  onDelete?: (target: ConversationRowTarget) => void;
   onFeedbackChange?: AssistantFeedbackHandler;
   onEdit?: (
     target: ConversationRowTarget,
@@ -614,6 +615,7 @@ function ConversationWorkSegmentFlow({
   context,
   onFork,
   onRetry,
+  onDelete,
   onEdit,
   editWorkspaceRewindAvailability,
   assistantCopyText,
@@ -623,6 +625,7 @@ function ConversationWorkSegmentFlow({
   assistantCodeCommentProjectionEnabled,
   canForkLatestAssistant,
   canRetryLatestAssistant,
+  canDeleteLatestAssistant,
   shareSelectionToggle,
   shareSelectionRowId,
 }: {
@@ -630,6 +633,7 @@ function ConversationWorkSegmentFlow({
   context: ConversationRowRenderContext;
   onFork?: (target: ConversationRowTarget) => void;
   onRetry?: (target: ConversationRowTarget) => void;
+  onDelete?: (target: ConversationRowTarget) => void;
   onEdit?: ConversationTurnGroupProps["onEdit"];
   editWorkspaceRewindAvailability: EditWorkspaceRewindAvailability;
   assistantCopyText?: string;
@@ -639,6 +643,7 @@ function ConversationWorkSegmentFlow({
   assistantCodeCommentProjectionEnabled: boolean;
   canForkLatestAssistant: boolean;
   canRetryLatestAssistant: boolean;
+  canDeleteLatestAssistant: boolean;
   shareSelectionToggle?: ReactNode;
   shareSelectionRowId?: number;
 }) {
@@ -730,6 +735,7 @@ function ConversationWorkSegmentFlow({
               context={context}
               onFork={item.latest && canForkLatestAssistant ? onFork : undefined}
               onRetry={item.latest && canRetryLatestAssistant ? onRetry : undefined}
+              onDelete={item.latest && canDeleteLatestAssistant ? onDelete : undefined}
               hideAssistantActions={!item.latest}
               deferAssistantActions={item.latest}
               assistantCopyText={item.latest ? assistantCopyText : undefined}
@@ -772,6 +778,7 @@ function ConversationTurnFlow({
   context,
   onFork,
   onRetry,
+  onDelete,
   onEdit,
   editWorkspaceRewindAvailability,
   assistantCopyText,
@@ -786,6 +793,7 @@ function ConversationTurnFlow({
   context: ConversationRowRenderContext;
   onFork?: (target: ConversationRowTarget) => void;
   onRetry?: (target: ConversationRowTarget) => void;
+  onDelete?: (target: ConversationRowTarget) => void;
   onEdit?: ConversationTurnGroupProps["onEdit"];
   editWorkspaceRewindAvailability: EditWorkspaceRewindAvailability;
   assistantCopyText?: string;
@@ -865,6 +873,7 @@ function ConversationTurnFlow({
 
   const latestAssistantTextRow = unit.latestAssistantTextRow;
   const canRetryLatestAssistant = latestAssistantTextRow?.actions?.canRetry === true;
+  const canDeleteLatestAssistant = latestAssistantTextRow?.actions?.canDelete === true;
   const canForkLatestAssistant = latestAssistantTextRow?.actions?.canFork === true;
 
   // 即使恢复了 guide 的 row 全序，也不能让所有 history chunk 共享同一个
@@ -878,6 +887,7 @@ function ConversationTurnFlow({
           context={context}
           onFork={onFork}
           onRetry={onRetry}
+          onDelete={onDelete}
           onEdit={onEdit}
           editWorkspaceRewindAvailability={editWorkspaceRewindAvailability}
           assistantCopyText={assistantCopyText}
@@ -887,6 +897,7 @@ function ConversationTurnFlow({
           assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
           canForkLatestAssistant={canForkLatestAssistant}
           canRetryLatestAssistant={canRetryLatestAssistant}
+          canDeleteLatestAssistant={canDeleteLatestAssistant}
           shareSelectionToggle={shareSelectionToggle}
           shareSelectionRowId={shareSelectionRowId}
         />
@@ -946,6 +957,7 @@ function ConversationBackgroundResultWork({
   context,
   onFork,
   onRetry,
+  onDelete,
   title,
   assistantCopyText,
   assistantCodeCommentCards,
@@ -957,6 +969,7 @@ function ConversationBackgroundResultWork({
   context: ConversationRowRenderContext;
   onFork?: (target: ConversationRowTarget) => void;
   onRetry?: (target: ConversationRowTarget) => void;
+  onDelete?: (target: ConversationRowTarget) => void;
   title: string;
   assistantCopyText?: string;
   assistantCodeCommentCards: AssistantCodeCommentCard[];
@@ -1078,6 +1091,7 @@ function ConversationBackgroundResultWork({
           context={context}
           onFork={latestAssistantTextRow.actions?.canFork === true ? onFork : undefined}
           onRetry={latestAssistantTextRow.actions?.canRetry === true ? onRetry : undefined}
+          onDelete={latestAssistantTextRow.actions?.canDelete === true ? onDelete : undefined}
           deferAssistantActions
           assistantCopyText={assistantCopyText}
           assistantPreviewCards={assistantPreviewCards}
@@ -1104,6 +1118,7 @@ function ConversationTurnGroupImpl({
   context,
   onFork,
   onRetry,
+  onDelete,
   onFeedbackChange,
   onEdit,
   shareSelection,
@@ -1210,6 +1225,7 @@ function ConversationTurnGroupImpl({
     !unit.isRunning &&
     unit.hookInvocations.some((row) => row.executions.some((execution) => execution.didExecute));
   const canRetryLatestAssistant = latestAssistantTextRow?.actions?.canRetry === true;
+  const canDeleteLatestAssistant = latestAssistantTextRow?.actions?.canDelete === true;
   const canForkLatestAssistant = latestAssistantTextRow?.actions?.canFork === true;
   const backgroundResultTitle = resolveBackgroundResultTitle(unit);
   const hasAssistantWorkContent = unit.timelineOnly
@@ -1349,6 +1365,7 @@ function ConversationTurnGroupImpl({
                 context={assistantRowContext}
                 onFork={canForkLatestAssistant ? onFork : undefined}
                 onRetry={onRetry}
+                onDelete={onDelete}
                 title={backgroundResultTitle}
                 assistantCopyText={assistantCopyText}
                 assistantCodeCommentCards={assistantCodeCommentCards}
@@ -1367,6 +1384,7 @@ function ConversationTurnGroupImpl({
               context={assistantRowContext}
               onFork={canForkLatestAssistant ? onFork : undefined}
               onRetry={onRetry}
+              onDelete={onDelete}
               onEdit={onEdit}
               editWorkspaceRewindAvailability={editWorkspaceRewindAvailability}
               shareSelectionToggle={shareSelectionToggle}
@@ -1423,6 +1441,7 @@ function ConversationTurnGroupImpl({
               sessionId={context.sessionId}
               onFork={canForkLatestAssistant ? onFork : undefined}
               onRetry={canRetryLatestAssistant ? onRetry : undefined}
+              onDelete={canDeleteLatestAssistant ? onDelete : undefined}
               onFeedbackChange={onFeedbackChange}
               hookInvocations={unit.hookInvocations}
               turnId={unit.turnId}

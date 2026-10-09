@@ -1,8 +1,9 @@
-// fork/edit/retry 命令组：forkAssistant / editUserQuery / retryTurn。
+// fork/edit/retry/delete 命令组：forkAssistant / editUserQuery / retryTurn / deleteTurn。
 // 共同点：都以 {rowId, entityId} 定位历史实体，经 host 的 v4 投影翻译面换成 transcript messageId
 // （翻译是 v4 原生决策，翻译不到直接 reject，绝不静默兜底 latestCheckpoint——会错点）。
 // - editUserQuery = 换文本的 retryTurn：rewind 截断该 turn → 原生 prompt turn 重发新文本。
 // - retryTurn = rewind 截断 + 重发原 user prompt（原文必须在 rewind 前解析，截断后拿不到）。
+// - deleteTurn = rewind 截断不重发：删除该轮 assistant 回复（含其后内容），用户提问保留。
 // - forkAssistant = stable resolver + conversation-only copy；running parent 与 workspace 不动。
 import type {
   CommandEnvelope,
@@ -82,6 +83,16 @@ class V4RetryTargetNotLatestError extends Error {
   constructor(targetRowId: number) {
     super(`retryTurn targetRowId ${targetRowId} 不是最后一轮 assistant 回复`);
     this.name = "V4RetryTargetNotLatestError";
+  }
+}
+
+/** latestAssistantDeleteOnly：delete 与 retry 共用截断锚点，历史轮同样回退 active branch，必须拒绝。 */
+class V4DeleteTargetNotLatestError extends Error {
+  readonly reasonCode = "guard.latestAssistantDeleteOnly";
+
+  constructor(targetRowId: number) {
+    super(`deleteTurn targetRowId ${targetRowId} 不是最后一轮 assistant 回复`);
+    this.name = "V4DeleteTargetNotLatestError";
   }
 }
 
@@ -273,6 +284,39 @@ async function retryTurn(
 }
 
 /**
+ * deleteTurn：retryTurn 减去重发。target assistant messageId → rewind 截断
+ * （该轮回复及之后全部内容消失，用户提问保留）。效果经投影 RewindTriggered →
+ * row 删除 delta 上行，无需独立 CommandResult。
+ */
+async function deleteTurn(
+  host: V4CommandCoreHost,
+  envelope: CommandEnvelope,
+): Promise<CommandResult | undefined> {
+  const payload = envelope.payload as CommandPayloadMap["deleteTurn"];
+  const record = requireRecord(host, envelope.sessionId);
+  const resolution = host.resolveRowActionTarget?.(
+    record.app.sessionId,
+    payload.target,
+    "deleteTurn",
+  );
+  if (!resolution?.ok || !resolution.messageId) {
+    throw new V4DeleteTargetNotLatestError(payload.target.rowId);
+  }
+  await submitConversationRewind(host, record, resolution.messageId);
+  host.logger?.info?.("v4 deleteTurn completed", {
+    ...traceContextToLogContext(record.traceContext),
+    clientId: envelope.clientId,
+    commandId: envelope.commandId,
+    module: CONVERSATION_COMMAND_LOG_MODULE,
+    sessionId: record.app.sessionId,
+    status: "completed",
+    targetEntityId: payload.target.entityId,
+    targetRowId: payload.target.rowId,
+  });
+  return undefined;
+}
+
+/**
  * forkAssistant：唯一 stable resolver 固定 logical-turn/message boundary，再走
  * conversation-only fork。此路径不读取 activeAbortController、不 stop parent，也不进入
  * legacy forkSession（后者含 ensureNoActiveTurn + workspace rewind）。
@@ -382,4 +426,5 @@ export const forkEditRetryHandlers = {
   forkAssistant,
   editUserQuery,
   retryTurn,
+  deleteTurn,
 };

@@ -325,6 +325,7 @@ export type ConversationRowTargetAction =
   | "forkAssistant"
   | "editUserQuery"
   | "retryTurn"
+  | "deleteTurn"
   | "applyFileRewind"
   | "fileChanges"
   | "fileRewindPreview"
@@ -796,6 +797,19 @@ export class ProductProjection {
         };
       }
       return { ok: true, action, row, messageId, editTarget };
+    }
+    // deleteTurn 与 retryTurn 共用同一 latest authority（canDelete 与 canRetry 同行置位）；
+    // 区别只在命令侧：纯截断不重发，因此不要求 editTarget（canonical user intent）。
+    if (action === "deleteTurn") {
+      const messageId = this.messageIdByRowId.get(row.rowId);
+      if (row.actions?.canDelete !== true || !messageId) {
+        return {
+          ok: false,
+          status: "rejected",
+          reasonCode: "guard.actionUnavailable",
+        };
+      }
+      return { ok: true, action, row, messageId };
     }
     if (action === "forkAssistant") {
       const messageId = this.messageIdByRowId.get(row.rowId);
@@ -1281,8 +1295,15 @@ export class ProductProjection {
           delete nextActions.editDisposition;
         }
       } else {
-        if (row.rowId === latestRetryableRowId) nextActions.canRetry = true;
-        else delete nextActions.canRetry;
+        // canDelete 与 canRetry 同行置位/清除（同一 latestRetryable authority）：
+        // 删除的截断锚点与重试相同，历史轮删除同样会回退 active branch，必须同样 latest-only。
+        if (row.rowId === latestRetryableRowId) {
+          nextActions.canRetry = true;
+          nextActions.canDelete = true;
+        } else {
+          delete nextActions.canRetry;
+          delete nextActions.canDelete;
+        }
         const headerId = this.turnHeaderRowIdByTurnId.get(row.turnId);
         const header = headerId === undefined ? undefined : rowById.get(headerId);
         const canFork =

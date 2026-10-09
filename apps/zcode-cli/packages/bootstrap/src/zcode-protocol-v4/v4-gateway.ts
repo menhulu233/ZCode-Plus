@@ -160,6 +160,7 @@ function rowTargetActionForCommand(
     case "forkAssistant":
     case "editUserQuery":
     case "retryTurn":
+    case "deleteTurn":
     case "applyFileRewind":
     case "setAssistantFeedback":
       return type;

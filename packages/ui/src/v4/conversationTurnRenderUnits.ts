@@ -289,7 +289,10 @@ function materializeDraftUnit(
   // product turn 的最终正文仍是唯一 action target；视觉工作段只改变折叠边界。
   const assistantTextRows = flowRows.filter(isAssistantTextRow);
   const actionAssistantTextRow = assistantTextRows.find(
-    (row) => row.actions?.canFork === true || row.actions?.canRetry === true,
+    (row) =>
+      row.actions?.canFork === true ||
+      row.actions?.canRetry === true ||
+      row.actions?.canDelete === true,
   );
   const lastFlowRow = flowRows.at(-1);
   const latestAssistantTextRow =

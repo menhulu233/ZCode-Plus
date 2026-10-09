@@ -11,12 +11,15 @@ import {
   GitBranchIcon,
   GoalIcon,
   PencilIcon,
+  RotateCcwIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
+  Trash2Icon,
   TrendingUpDownIcon,
   XIcon,
 } from "lucide-react";
 import {
+  TID_V4_DELETE,
   TID_V4_EDIT,
   TID_V4_EDIT_ATTACHMENT_REMOVE,
   TID_V4_EDIT_CANCEL,
@@ -26,6 +29,7 @@ import {
   TID_V4_FEEDBACK_DISLIKE,
   TID_V4_FEEDBACK_LIKE,
   TID_V4_FORK,
+  TID_V4_RETRY,
   TID_V4_ROW,
   TID_V4_ROW_ATTACHMENTS,
   testId,
@@ -248,8 +252,10 @@ interface ConversationRowViewProps {
   onFork?: (target: ConversationRowTarget) => void;
   /** assistant entity 反馈 CAS；UI 先乐观更新，命令失败时回滚。 */
   onFeedbackChange?: AssistantFeedbackHandler;
-  /** 协议兼容：上层仍可提供 retryTurn capability，但产品 UI 不渲染普通重试入口。 */
+  /** 完成态 assistant 行的重试入口（retryTurn command：截断 + 重发原输入）。 */
   onRetry?: (target: ConversationRowTarget) => void;
+  /** 完成态 assistant 行的删除入口（deleteTurn command：截断不重发，提问保留）。 */
+  onDelete?: (target: ConversationRowTarget) => void;
   /** user 行的 edit 入口（editUserQuery command，用行内编辑文本替换该轮）。 */
   onEdit?: UserInputEditHandler;
   editWorkspaceRewindAvailability?: EditWorkspaceRewindAvailability;
@@ -1317,6 +1323,8 @@ export const ConversationAssistantTextActions = memo(function ConversationAssist
   sessionId,
   turnId,
   onFork,
+  onRetry,
+  onDelete,
   onFeedbackChange,
   className,
 }: {
@@ -1330,6 +1338,7 @@ export const ConversationAssistantTextActions = memo(function ConversationAssist
   turnId?: string;
   onFork?: (target: ConversationRowTarget) => void;
   onRetry?: (target: ConversationRowTarget) => void;
+  onDelete?: (target: ConversationRowTarget) => void;
   onFeedbackChange?: AssistantFeedbackHandler;
   className?: string;
 }) {
@@ -1337,6 +1346,8 @@ export const ConversationAssistantTextActions = memo(function ConversationAssist
   const platform = useOptionalPlatform();
   const [localFeedback, setLocalFeedback] = useState<AssistantMessageFeedback | null>(feedback);
   const copyLabel = intl.formatMessage({ id: "chat.message.copy" });
+  const retryLabel = intl.formatMessage({ id: "chat.message.retry" });
+  const deleteLabel = intl.formatMessage({ id: "chat.message.delete" });
   const likeLabel = intl.formatMessage({
     id: localFeedback === "like" ? "chat.message.liked" : "chat.message.like",
   });
@@ -1403,6 +1414,15 @@ export const ConversationAssistantTextActions = memo(function ConversationAssist
       });
     }
   }, [entityId, onFork, rowId]);
+  // retry/delete 是 CAS 命令（baseRevision 由 SessionPane 取当前投影），
+  // 可用性已由 row.actions.canRetry/canDelete 行级投影裁决，这里只转发目标；
+  // ACK 拒绝的 warn 日志收口在 SessionPane 的 handleRetry/handleDelete。
+  const handleRetryClick = useCallback(() => {
+    if (entityId) onRetry?.({ rowId, entityId });
+  }, [entityId, onRetry, rowId]);
+  const handleDeleteClick = useCallback(() => {
+    if (entityId) onDelete?.({ rowId, entityId });
+  }, [entityId, onDelete, rowId]);
   return (
     <MessageActions className={cn(className)}>
       <CopyRowAction
@@ -1411,6 +1431,28 @@ export const ConversationAssistantTextActions = memo(function ConversationAssist
         label={copyLabel}
         tooltip={resolveTooltip(copyLabel)}
       />
+      {entityId && onRetry ? (
+        <MessageAction
+          aria-label={retryLabel}
+          label={retryLabel}
+          tooltip={resolveTooltip(retryLabel)}
+          data-testid={testId(TID_V4_RETRY, String(rowId))}
+          onClick={handleRetryClick}
+        >
+          <RotateCcwIcon className="size-3.5" />
+        </MessageAction>
+      ) : null}
+      {entityId && onDelete ? (
+        <MessageAction
+          aria-label={deleteLabel}
+          label={deleteLabel}
+          tooltip={resolveTooltip(deleteLabel)}
+          data-testid={testId(TID_V4_DELETE, String(rowId))}
+          onClick={handleDeleteClick}
+        >
+          <Trash2Icon className="size-3.5" />
+        </MessageAction>
+      ) : null}
       {entityId && onFeedbackChange ? (
         <>
           <MessageAction
@@ -1479,6 +1521,7 @@ const AssistantTextRowView = memo(function AssistantTextRowView({
   context,
   onFork,
   onRetry,
+  onDelete,
   onFeedbackChange,
   hideActions,
   deferActions,
@@ -1492,6 +1535,7 @@ const AssistantTextRowView = memo(function AssistantTextRowView({
   context: ConversationRowRenderContext;
   onFork?: (target: ConversationRowTarget) => void;
   onRetry?: (target: ConversationRowTarget) => void;
+  onDelete?: (target: ConversationRowTarget) => void;
   onFeedbackChange?: AssistantFeedbackHandler;
   hideActions?: boolean;
   deferActions?: boolean;
@@ -1578,6 +1622,7 @@ const AssistantTextRowView = memo(function AssistantTextRowView({
           sessionId={context.sessionId}
           onFork={onFork}
           onRetry={onRetry}
+          onDelete={onDelete}
           onFeedbackChange={onFeedbackChange}
           className={cn(
             "mt-1",
@@ -2097,6 +2142,7 @@ function ConversationRowViewImpl({
   context,
   onFork,
   onRetry,
+  onDelete,
   onFeedbackChange,
   onEdit,
   editWorkspaceRewindAvailability,
@@ -2128,6 +2174,7 @@ function ConversationRowViewImpl({
           context={context}
           onFork={onFork}
           onRetry={onRetry}
+          onDelete={onDelete}
           onFeedbackChange={onFeedbackChange}
           hideActions={hideAssistantActions}
           deferActions={deferAssistantActions}

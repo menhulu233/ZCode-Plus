@@ -1,6 +1,7 @@
 import { localTtftContextSchema, localTtftClockSchema } from "../localTtft.js";
 // Command 层：信封 / ACK / 命令全集 payload。
-// conversation rewind 无独立命令（裁决：= editUserQuery 的 UI 入口）；
+// conversation rewind 的两条 UI 入口：改文本重发 = editUserQuery；纯截断不重发 =
+// deleteTurn（2026-10-09 会话操作区新增删除入口，取代旧「rewind 无独立命令」裁决）；
 // workspace-only 文件撤销走 applyFileRewind，不截断聊天历史。
 import { z } from "zod";
 import { conversationRowTargetSchema, timestampSchema } from "./core.js";
@@ -159,6 +160,9 @@ export const commandPayloadSchemas = {
     workspaceMode: z.enum(["preserve", "rewind"]).optional(),
   }),
   retryTurn: z.object({ target: conversationRowTargetSchema }),
+  // deleteTurn = retryTurn 减去重发：rewind 截断目标 assistant 回复（含其后内容），
+  // 用户提问保留。可用性由行级投影 row.actions.canDelete 裁决（与 canRetry 同一 authority）。
+  deleteTurn: z.object({ target: conversationRowTargetSchema }),
   setAssistantFeedback: z.object({
     target: conversationRowTargetSchema,
     feedback: z.enum(["like", "dislike"]).nullable(),
@@ -298,6 +302,7 @@ export const COMMANDS_REQUIRING_BASE_REVISION: ReadonlySet<CommandType> = new Se
   "forkAssistant",
   "editUserQuery",
   "retryTurn",
+  "deleteTurn",
   "setAssistantFeedback",
   "sendQueuedNow",
   "editQueueItem",
@@ -316,6 +321,7 @@ export const ROW_TARGETING_COMMANDS: ReadonlySet<CommandType> = new Set([
   "forkAssistant",
   "editUserQuery",
   "retryTurn",
+  "deleteTurn",
   "setAssistantFeedback",
 ]);
 

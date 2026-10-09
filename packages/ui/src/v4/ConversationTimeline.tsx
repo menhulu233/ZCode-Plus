@@ -265,6 +265,7 @@ interface ConversationTimelineProps {
   rowContext: ConversationRowRenderContext;
   onFork?: (target: ConversationRowTarget) => void;
   onRetry?: (target: ConversationRowTarget) => void;
+  onDelete?: (target: ConversationRowTarget) => void;
   onFeedbackChange?: AssistantFeedbackHandler;
   onEdit?: (
     target: ConversationRowTarget,
@@ -359,6 +360,7 @@ function ConversationTimelineImpl({
   rowContext,
   onFork,
   onRetry,
+  onDelete,
   onFeedbackChange,
   onEdit,
   canLoadOlder = false,
@@ -1844,6 +1846,7 @@ function ConversationTimelineImpl({
                         context={rowContext}
                         onFork={onFork}
                         onRetry={onRetry}
+                        onDelete={onDelete}
                         onFeedbackChange={onFeedbackChange}
                         onEdit={onEdit}
                         shareSelection={shareSelection}
@@ -1874,6 +1877,7 @@ function ConversationTimelineImpl({
                     context={rowContext}
                     onFork={onFork}
                     onRetry={onRetry}
+                    onDelete={onDelete}
                     onFeedbackChange={onFeedbackChange}
                     onEdit={onEdit}
                     shareSelection={shareSelection}

@@ -4574,6 +4574,7 @@ const enUS: Record<string, string> = {
   "chat.message.edit": "Edit",
   "chat.message.restore": "Restore",
   "chat.message.copy": "Copy",
+  "chat.message.delete": "Delete",
   "chat.message.copy.copied": "Copied",
   "chat.message.copy.requiresFull": "Load full message before copying",
   "chat.message.like": "Like",

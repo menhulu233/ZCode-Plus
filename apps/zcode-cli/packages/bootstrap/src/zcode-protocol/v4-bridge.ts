@@ -1585,6 +1585,7 @@ export function createConversationV4Gateway(
           envelope.type === "resumeGoal" ||
           envelope.type === "sendQueuedNow" ||
           envelope.type === "forkAssistant" ||
+          envelope.type === "deleteTurn" ||
           envelope.type === "createSelectionSideSession")
       ) {
         const taskType =

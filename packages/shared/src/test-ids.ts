@@ -553,6 +553,8 @@ export const TID_V4_STOP = "v4-stop";
 export const TID_V4_FORK = "v4-fork";
 /** v4 assistant 行 retry 按钮（动态后缀为 rowId） */
 export const TID_V4_RETRY = "v4-retry";
+/** v4 assistant 行 delete 按钮（动态后缀为 rowId） */
+export const TID_V4_DELETE = "v4-delete";
 /** v4 assistant 行点赞按钮（动态后缀为 rowId） */
 export const TID_V4_FEEDBACK_LIKE = "v4-feedback-like";
 /** v4 assistant 行点踩按钮（动态后缀为 rowId） */

@@ -3117,6 +3117,41 @@ export function SessionPane({
     [dispatchRetryTurn],
   );
 
+  const dispatchDeleteTurn = useCallback(
+    async (target: ConversationRowTarget): Promise<CommandAck> => {
+      const current = snapshotRef.current;
+      if (!sessionId || current === null) {
+        throw new Error("deleteTurn 缺少当前 session 投影");
+      }
+      // deleteTurn 与 retryTurn 同为 CAS 命令：baseRevision 取当前投影 revision。
+      return dispatchCommand(
+        "deleteTurn",
+        { target },
+        sessionId,
+        current.revision,
+        current.logEpoch,
+      );
+    },
+    [dispatchCommand, sessionId],
+  );
+
+  const handleDelete = useCallback(
+    (target: ConversationRowTarget) => {
+      void dispatchDeleteTurn(target)
+        .then((ack) => {
+          if (ack.status !== "accepted") {
+            logger.warn(`[v4-pane] delete 被拒绝: ${ack.status} ${ack.reasonCode ?? ""}`);
+          }
+        })
+        .catch((error: unknown) => {
+          logger.warn("[v4-pane] delete 提交失败", {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+    },
+    [dispatchDeleteTurn],
+  );
+
   const handleAssistantFeedback = useCallback(
     async (
       target: ConversationRowTarget,
@@ -3687,6 +3722,8 @@ export function SessionPane({
   // retry 的产品裁决属于行级权威投影。这里仅提供命令能力，入口是否展示
   // 完全读取 row.actions.canRetry，禁止再用 pane phase 形成第二套 guard。
   const retryActionsEnabled = !readOnly && !selectionSideChat && Boolean(sessionId);
+  // delete 同理：能力回调恒定，入口展示只读 row.actions.canDelete 投影。
+  const deleteActionsEnabled = !readOnly && !selectionSideChat && Boolean(sessionId);
   // fork 可用性完全由 row.actions.canFork（CLI stable resolver 投影）裁决；pane 只提供命令回调。
   const forkActionsEnabled = !readOnly && !selectionSideChat && Boolean(sessionId);
   // editUserQuery 已由 command 层防御 latest real user query，并在 running
@@ -4745,6 +4782,7 @@ export function SessionPane({
               rowContext={rowContext}
               onFork={forkActionsEnabled ? handleFork : undefined}
               onRetry={retryActionsEnabled ? handleRetry : undefined}
+              onDelete={deleteActionsEnabled ? handleDelete : undefined}
               onFeedbackChange={
                 !readOnly && !selectionSideChat && sessionId ? handleAssistantFeedback : undefined
               }

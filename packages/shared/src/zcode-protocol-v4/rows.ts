@@ -17,12 +17,13 @@ const rowBaseFields = {
   visibility: z.literal("visible").optional(),
   createdAt: timestampSchema,
   createdAtSeq: z.number(),
-  // 缺省全 false；只下发为 true 的键。canRewind 不在载荷内（rewind = editUserQuery 的 UI 入口）。
+  // 缺省全 false；只下发为 true 的键。canRewind 不在载荷内（rewind = editUserQuery/deleteTurn 的 UI 入口）。
   actions: z
     .object({
       canFork: z.literal(true).optional(),
       canEdit: z.literal(true).optional(),
       canRetry: z.literal(true).optional(),
+      canDelete: z.literal(true).optional(),
       canRewindFiles: z.literal(true).optional(),
       editDisposition: z.enum(["rewind", "fork"]).optional(),
     })
