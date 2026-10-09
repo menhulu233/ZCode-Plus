@@ -84,6 +84,7 @@ import {
   type OpenScopedWorkflowArtifactSideTabRequest,
   type OpenScopedWorkflowRunSideTabRequest,
   type OpenBackgroundBashSideTabRequest,
+  type SidePaneTabCloseSide,
   type WorkspaceSidePaneState,
 } from "@/lib/workspaceSidePane.js";
 import { inferMediaPreview, type CodeViewerSource } from "@/lib/codeViewer.js";
@@ -312,6 +313,7 @@ export function AnimatedSidePanePanel({
   onReorderTab,
   onCloseTab,
   onCloseOtherTabs,
+  onCloseTabsOnSide,
   onCloseAllTabs,
   onReopenClosedTab,
   onOpenBrowserTab,
@@ -381,6 +383,7 @@ export function AnimatedSidePanePanel({
   onReorderTab: (activeTabId: string, overTabId: string) => void;
   onCloseTab: (tabId: string) => void;
   onCloseOtherTabs: (tabId: string) => void;
+  onCloseTabsOnSide: (tabId: string, side: SidePaneTabCloseSide) => void;
   onCloseAllTabs: () => void;
   onReopenClosedTab: (tabId: string) => void;
   onOpenBrowserTab: () => void;
@@ -1021,7 +1024,7 @@ export function AnimatedSidePanePanel({
                             items={visibleTabs.map((tab) => tab.id)}
                             strategy={horizontalListSortingStrategy}
                           >
-                            {visibleTabs.map((tab) => {
+                            {visibleTabs.map((tab, tabIndex) => {
                               const title = getSidePaneTabTitle(tab, intl.formatMessage);
                               return (
                                 <SortableSidePaneTabTrigger
@@ -1038,6 +1041,12 @@ export function AnimatedSidePanePanel({
                                   closeOtherTabsLabel={intl.formatMessage({
                                     id: "sidePane.closeOtherTabs",
                                   })}
+                                  closeLeftTabsLabel={intl.formatMessage({
+                                    id: "sidePane.closeLeftTabs",
+                                  })}
+                                  closeRightTabsLabel={intl.formatMessage({
+                                    id: "sidePane.closeRightTabs",
+                                  })}
                                   closeAllTabsLabel={intl.formatMessage({
                                     id: "sidePane.closeAllTabs",
                                   })}
@@ -1048,8 +1057,11 @@ export function AnimatedSidePanePanel({
                                   onActivateTab={onActivateTab}
                                   onCloseTab={onCloseTab}
                                   onCloseOtherTabs={onCloseOtherTabs}
+                                  onCloseTabsOnSide={onCloseTabsOnSide}
                                   onCloseAllTabs={onCloseAllTabs}
                                   canCloseOtherTabs={visibleTabs.length > 1}
+                                  canCloseLeftTabs={tabIndex > 0}
+                                  canCloseRightTabs={tabIndex < visibleTabs.length - 1}
                                 />
                               );
                             })}

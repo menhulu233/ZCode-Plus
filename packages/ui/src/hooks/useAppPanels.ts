@@ -45,6 +45,8 @@ import {
   openCodeViewerSidePanes,
   activateGitSidePane,
   openFileTreeSidePane,
+  closeVisibleSidePaneTabsOnSide,
+  type SidePaneTabCloseSide,
   getActiveSidePaneTab,
   getVisibleSidePaneTabs,
   sidePaneOwnerKey,
@@ -1482,6 +1484,47 @@ export function useAppPanels(options: {
     ],
   );
 
+  const handleCloseSidePaneTabsOnSide = useCallback(
+    (tabId: string, side: SidePaneTabCloseSide) => {
+      const visibleTabs =
+        sidePaneState?.tabs.filter((tab) => isSidePaneTabVisibleForParent(tab, activeTaskId)) ?? [];
+      const anchorIndex = visibleTabs.findIndex((tab) => tab.id === tabId);
+      if (anchorIndex < 0) return;
+      const closingTabs =
+        side === "left" ? visibleTabs.slice(0, anchorIndex) : visibleTabs.slice(anchorIndex + 1);
+      if (closingTabs.length === 0) return;
+      void closeBrowserTabsWithAuthority(closingTabs).then((authorized) => {
+        if (!authorized) return;
+        for (const tab of closingTabs) {
+          if (tab.type === "selection-side-chat") closeSelectionSideChatRuntime(tab);
+        }
+        // 保活：方向化批量关闭同样必须回收 terminal tab 的常驻 PTY/xterm。
+        for (const tab of closingTabs) {
+          if (tab.type === "terminal") {
+            sidePaneTerminalSessionRegistry.release(tab.id);
+          }
+        }
+        rememberClosedSidePaneTabs(closingTabs);
+        commitSidePaneState((current) => {
+          const next = closeVisibleSidePaneTabsOnSide(current, tabId, activeTaskId, side);
+          logger.info(
+            `[App] 关闭${side === "left" ? "左侧" : "右侧"}右侧面板 tab=${tabId} workspace=${workspaceAbsPath} tabs=${next?.tabs.length ?? 0}`,
+          );
+          return next;
+        });
+      });
+    },
+    [
+      activeTaskId,
+      closeSelectionSideChatRuntime,
+      closeBrowserTabsWithAuthority,
+      commitSidePaneState,
+      rememberClosedSidePaneTabs,
+      sidePaneState?.tabs,
+      workspaceAbsPath,
+    ],
+  );
+
   const handleCloseAllSidePaneTabs = useCallback(() => {
     const visibleTabs =
       sidePaneState?.tabs.filter((tab) => isSidePaneTabVisibleForParent(tab, activeTaskId)) ?? [];
@@ -1622,6 +1665,7 @@ export function useAppPanels(options: {
     handleReorderSidePaneTab,
     handleCloseSidePaneTab,
     handleCloseOtherSidePaneTabs,
+    handleCloseSidePaneTabsOnSide,
     handleCloseAllSidePaneTabs,
     handleReopenClosedSidePaneTab,
     handleBrowserNavigationRequestHandled,

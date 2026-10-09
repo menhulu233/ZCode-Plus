@@ -1077,6 +1077,8 @@ const zhCN: Record<string, string> = {
   "sidePane.closeTab": "关闭 {title}",
   "sidePane.closeCurrentTab": "关闭标签",
   "sidePane.closeOtherTabs": "关闭其他标签",
+  "sidePane.closeLeftTabs": "关闭左侧标签",
+  "sidePane.closeRightTabs": "关闭右侧标签",
   "sidePane.closeAllTabs": "关闭所有标签",
   "sidePane.openedRelativeTime": "{time}打开",
   "sidePane.closedRelativeTime": "{time}关闭",

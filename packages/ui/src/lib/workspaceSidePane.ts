@@ -2018,6 +2018,34 @@ export function closeVisibleOtherSidePaneTabs(
   };
 }
 
+export type SidePaneTabCloseSide = "left" | "right";
+
+/**
+ * 关闭锚点 tab 在可见列表中某一侧的全部 tab。锚点本身与另一侧永远保留，
+ * 因此结果不会出现空面板；激活 tab 被关掉时由锚点接管，存活时保持不变
+ * （不抢焦点，与中键关闭保留激活的既有原则一致）。
+ */
+export function closeVisibleSidePaneTabsOnSide(
+  current: WorkspaceSidePaneState | null,
+  tabId: string,
+  parentSessionId: string | null,
+  side: SidePaneTabCloseSide,
+): WorkspaceSidePaneState | null {
+  if (!current) return null;
+  const visibleTabs = getVisibleSidePaneTabs(current, parentSessionId);
+  const anchorIndex = visibleTabs.findIndex((tab) => tab.id === tabId);
+  // 锚点不在当前可见列表（跨对话右键等）或该侧没有 tab：no-op，保持原状态。
+  if (anchorIndex < 0) return current;
+  const closingTabs =
+    side === "left" ? visibleTabs.slice(0, anchorIndex) : visibleTabs.slice(anchorIndex + 1);
+  if (closingTabs.length === 0) return current;
+  const closingIds = new Set(closingTabs.map((tab) => tab.id));
+  return {
+    tabs: current.tabs.filter((tab) => !closingIds.has(tab.id)),
+    activeTabId: closingIds.has(current.activeTabId) ? tabId : current.activeTabId,
+  };
+}
+
 export function closeVisibleSidePaneTabs(
   current: WorkspaceSidePaneState | null,
   parentSessionId: string | null,

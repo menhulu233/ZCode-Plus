@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/context-menu.js";
 import { TabsTrigger } from "@/components/ui/tabs.js";
 import { FileDisplayIcon, resolveFileDisplayDescriptor } from "@/lib/fileDisplay.js";
-import type { WorkspaceSidePaneTab } from "@/lib/workspaceSidePane.js";
+import type { SidePaneTabCloseSide, WorkspaceSidePaneTab } from "@/lib/workspaceSidePane.js";
 import { Button } from "@/components/ui/button.js";
 import { BrowserUseTabIcon } from "@/app-shell/BrowserUseTabIcon.js";
 import { BrowserTabFavicon } from "@/app-shell/BrowserTabFavicon.js";
@@ -45,28 +45,38 @@ export function SortableSidePaneTabTrigger({
   closeTabLabel,
   closeTabMenuLabel,
   closeOtherTabsLabel,
+  closeLeftTabsLabel,
+  closeRightTabsLabel,
   closeAllTabsLabel,
   diffBadgeLabel,
   isActive,
   onActivateTab,
   onCloseTab,
   onCloseOtherTabs,
+  onCloseTabsOnSide,
   onCloseAllTabs,
   canCloseOtherTabs,
+  canCloseLeftTabs,
+  canCloseRightTabs,
 }: {
   tab: WorkspaceSidePaneTab;
   title: string;
   closeTabLabel: string;
   closeTabMenuLabel: string;
   closeOtherTabsLabel: string;
+  closeLeftTabsLabel: string;
+  closeRightTabsLabel: string;
   closeAllTabsLabel: string;
   diffBadgeLabel: string;
   isActive: boolean;
   onActivateTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
   onCloseOtherTabs: (tabId: string) => void;
+  onCloseTabsOnSide: (tabId: string, side: SidePaneTabCloseSide) => void;
   onCloseAllTabs: () => void;
   canCloseOtherTabs: boolean;
+  canCloseLeftTabs: boolean;
+  canCloseRightTabs: boolean;
 }) {
   const wasDraggingRef = useRef(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -191,6 +201,18 @@ export function SortableSidePaneTabTrigger({
         <ContextMenuItem onSelect={() => onCloseTab(tab.id)}>{closeTabMenuLabel}</ContextMenuItem>
         <ContextMenuItem disabled={!canCloseOtherTabs} onSelect={() => onCloseOtherTabs(tab.id)}>
           {closeOtherTabsLabel}
+        </ContextMenuItem>
+        <ContextMenuItem
+          disabled={!canCloseLeftTabs}
+          onSelect={() => onCloseTabsOnSide(tab.id, "left")}
+        >
+          {closeLeftTabsLabel}
+        </ContextMenuItem>
+        <ContextMenuItem
+          disabled={!canCloseRightTabs}
+          onSelect={() => onCloseTabsOnSide(tab.id, "right")}
+        >
+          {closeRightTabsLabel}
         </ContextMenuItem>
         <ContextMenuItem onSelect={onCloseAllTabs}>{closeAllTabsLabel}</ContextMenuItem>
       </ContextMenuContent>

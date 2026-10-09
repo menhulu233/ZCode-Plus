@@ -253,6 +253,7 @@ export function App({
     handleReorderSidePaneTab,
     handleCloseSidePaneTab,
     handleCloseOtherSidePaneTabs,
+    handleCloseSidePaneTabsOnSide,
     handleCloseAllSidePaneTabs,
     handleReopenClosedSidePaneTab,
     handleBrowserNavigationRequestHandled,
@@ -1269,6 +1270,7 @@ export function App({
         handleReorderSidePaneTab={handleReorderSidePaneTab}
         handleCloseSidePaneTab={handleCloseSidePaneTab}
         handleCloseOtherSidePaneTabs={handleCloseOtherSidePaneTabs}
+        handleCloseSidePaneTabsOnSide={handleCloseSidePaneTabsOnSide}
         handleCloseAllSidePaneTabs={handleCloseAllSidePaneTabs}
         handleReopenClosedSidePaneTab={handleReopenClosedSidePaneTab}
         handleBrowserNavigationRequestHandled={handleBrowserNavigationRequestHandled}

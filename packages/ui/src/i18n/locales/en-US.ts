@@ -1161,6 +1161,8 @@ const enUS: Record<string, string> = {
   "sidePane.closeTab": "Close {title}",
   "sidePane.closeCurrentTab": "Close tab",
   "sidePane.closeOtherTabs": "Close other tabs",
+  "sidePane.closeLeftTabs": "Close tabs to the left",
+  "sidePane.closeRightTabs": "Close tabs to the right",
   "sidePane.closeAllTabs": "Close all tabs",
   "sidePane.openedRelativeTime": "Opened {time}",
   "sidePane.closedRelativeTime": "Closed {time}",

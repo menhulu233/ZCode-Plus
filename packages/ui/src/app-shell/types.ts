@@ -26,6 +26,7 @@ import type {
   OpenScopedWorkflowActorSessionSideTabRequest,
   OpenScopedWorkflowArtifactSideTabRequest,
   OpenScopedWorkflowWorkspaceSideTabRequest,
+  SidePaneTabCloseSide,
   WorkspaceSidePaneState,
 } from "@/lib/workspaceSidePane.js";
 import type { TreemappingSidePaneTab } from "@/lib/workspaceSidePane.js";
@@ -268,6 +269,7 @@ export interface WorkspaceShellLayoutProps extends Omit<AppProps, "baseFeedbackS
   handleReorderSidePaneTab: (activeTabId: string, overTabId: string) => void;
   handleCloseSidePaneTab: (tabId: string) => void;
   handleCloseOtherSidePaneTabs: (tabId: string) => void;
+  handleCloseSidePaneTabsOnSide: (tabId: string, side: SidePaneTabCloseSide) => void;
   handleCloseAllSidePaneTabs: () => void;
   handleReopenClosedSidePaneTab: (tabId: string) => void;
   handleBrowserNavigationRequestHandled: (requestId: string) => void;
