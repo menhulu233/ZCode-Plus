@@ -30,7 +30,7 @@ function state(tabs: WorkspaceSidePaneTab[], activeTabId: string): WorkspaceSide
 
 test("closing left removes only visible tabs before the anchor", () => {
   const current = state(
-    [globalTab("a", "git"), globalTab("b", "file-tree"), globalTab("c", "terminal")],
+    [globalTab("a", "git"), globalTab("b", "file-tree"), globalTab("c", "browser")],
     "b",
   );
   const next = closeVisibleSidePaneTabsOnSide(current, "b", null, "left");
@@ -44,7 +44,7 @@ test("closing left removes only visible tabs before the anchor", () => {
 
 test("closing right removes only visible tabs after the anchor", () => {
   const current = state(
-    [globalTab("a", "git"), globalTab("b", "file-tree"), globalTab("c", "terminal")],
+    [globalTab("a", "git"), globalTab("b", "file-tree"), globalTab("c", "browser")],
     "a",
   );
   const next = closeVisibleSidePaneTabsOnSide(current, "b", null, "right");
@@ -57,7 +57,7 @@ test("closing right removes only visible tabs after the anchor", () => {
 
 test("first visible anchor makes left close a no-op and last makes right a no-op", () => {
   const current = state(
-    [globalTab("a", "git"), globalTab("b", "file-tree"), globalTab("c", "terminal")],
+    [globalTab("a", "git"), globalTab("b", "file-tree"), globalTab("c", "browser")],
     "a",
   );
   const closeLeft = closeVisibleSidePaneTabsOnSide(current, "a", null, "left");
@@ -68,14 +68,14 @@ test("first visible anchor makes left close a no-op and last makes right a no-op
 
 test("anchor takes over activation when the active tab is closed", () => {
   const current = state(
-    [globalTab("a", "git"), globalTab("b", "file-tree"), globalTab("c", "terminal")],
+    [globalTab("a", "git"), globalTab("b", "file-tree"), globalTab("c", "browser")],
     "a",
   );
   const left = closeVisibleSidePaneTabsOnSide(current, "b", null, "left");
   assert.equal(left?.activeTabId, "b");
 
   const current2 = state(
-    [globalTab("a", "git"), globalTab("b", "file-tree"), globalTab("c", "terminal")],
+    [globalTab("a", "git"), globalTab("b", "file-tree"), globalTab("c", "browser")],
     "c",
   );
   const right = closeVisibleSidePaneTabsOnSide(current2, "b", null, "right");
@@ -87,7 +87,7 @@ test("tabs of other parent scopes stay untouched", () => {
     [
       globalTab("a", "git"),
       subagentTab("s1", "session-1"),
-      globalTab("b", "terminal"),
+      globalTab("b", "browser"),
       subagentTab("s2", "session-2"),
     ],
     "s1",

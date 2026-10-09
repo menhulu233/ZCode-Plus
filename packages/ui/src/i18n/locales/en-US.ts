@@ -493,7 +493,6 @@ const enUS: Record<string, string> = {
   "quickPick.command.toggleSidebar": "Toggle sidebar",
   "quickPick.command.toggleTerminal": "Toggle terminal",
   "quickPick.command.togglePreview": "Toggle preview",
-  "quickPick.command.addTerminalTab": "Add terminal tab",
   "quickPick.command.addBrowserTab": "Add browser tab",
   "quickPick.command.addReviewTab": "Add review tab",
   "quickPick.command.toggleSidePane": "Toggle panel",

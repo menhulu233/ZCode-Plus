@@ -97,17 +97,6 @@ export interface DeveloperToolsSidePaneTab {
   openedAt?: number;
 }
 
-export interface TerminalSidePaneTab {
-  id: string;
-  type: "terminal";
-  ownerTaskId?: string | null;
-  workspaceKey?: string | null;
-  openedAt?: number;
-  title: string;
-  cwd?: string;
-  remoteSessionId?: string | null;
-}
-
 /** browser-use 受控浏览器视图（renderer `<webview>` + main CDP）。 */
 export interface BrowserUseSidePaneTab {
   id: string;
@@ -535,7 +524,6 @@ export type WorkspaceSidePaneTab =
   | WhiteboardSidePaneTab
   | ModelTrajectorySidePaneTab
   | DeveloperToolsSidePaneTab
-  | TerminalSidePaneTab
   | BrowserUseSidePaneTab
   | SubagentSessionSidePaneTab
   | SubagentDirectorySidePaneTab
@@ -581,9 +569,13 @@ export function normalizeWorkspaceSidePaneState(
     return null;
   }
 
-  // Treemapping 当前需要从侧边栏隐藏。旧版本可能已经把 treemapping tab
-  // 写进了 workspace 级 side pane 记忆，这里在状态边界统一过滤，避免恢复后入口继续出现。
-  const filteredTabs = current.tabs.filter((tab) => tab.type !== "treemapping");
+  // 右侧面板终端 tab 已随 side pane terminal 功能下线（底部终端成为唯一终端入口）。
+  // 旧版本可能把 terminal tab 写进了 workspace 级 side pane 记忆，这里在状态边界统一过滤，
+  // 避免恢复后渲染出无入口、无回收方的僵尸 tab。同 treemapping 的过滤先例。
+  // 输入是反序列化的持久化数据，按 string 比较以覆盖类型上已移除的历史 tab 类型。
+  const filteredTabs = current.tabs.filter(
+    (tab) => (tab.type as string) !== "treemapping" && (tab.type as string) !== "terminal",
+  );
   if (filteredTabs.length === 0) {
     return null;
   }
@@ -686,21 +678,6 @@ function createDeveloperToolsSidePaneTab(): DeveloperToolsSidePaneTab {
     id: "developer-tools",
     type: "developer-tools",
     openedAt: Date.now(),
-  };
-}
-
-function createTerminalSidePaneTab(options: {
-  title: string;
-  cwd?: string;
-  remoteSessionId?: string | null;
-}): TerminalSidePaneTab {
-  return {
-    id: `terminal:${createUuid()}`,
-    type: "terminal",
-    openedAt: Date.now(),
-    title: options.title,
-    ...(options.cwd ? { cwd: options.cwd } : {}),
-    ...(options.remoteSessionId ? { remoteSessionId: options.remoteSessionId } : {}),
   };
 }
 
@@ -1607,13 +1584,6 @@ export function activateDeveloperToolsSidePane(
   current: WorkspaceSidePaneState | null,
 ): WorkspaceSidePaneState {
   return activateSidePaneTab(current, createDeveloperToolsSidePaneTab());
-}
-
-export function openTerminalSidePane(
-  current: WorkspaceSidePaneState | null,
-  options: { title: string; cwd?: string; remoteSessionId?: string | null },
-): WorkspaceSidePaneState {
-  return activateSidePaneTab(current, createTerminalSidePaneTab(options));
 }
 
 export function openSubagentSessionSidePane(

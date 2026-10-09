@@ -238,7 +238,6 @@ export interface WorkspaceShellLayoutProps extends Omit<AppProps, "baseFeedbackS
   handleOpenTreemapping: (source?: TreemappingSidePaneTab["source"]) => void;
   handleOpenWhiteboard: () => void;
   handleOpenDeveloperTools: () => void;
-  handleOpenTerminalTab: () => void;
   handleToggleGit: () => void;
   handleOpenFileTreePane: () => void;
   handleOpenGitReview: (sourceId?: GitChangeSourceId) => void;

@@ -60,7 +60,6 @@ interface QuickPickCommandHandlers {
   toggleSidebar: () => void;
   toggleTerminal: () => void;
   togglePreview: () => void;
-  openTerminalTab: () => void;
   openBrowserTab: () => void;
   openReviewTab: () => void;
 }
@@ -164,14 +163,6 @@ export function createQuickPickCommands({
           } satisfies QuickPickCommand,
         ]
       : []),
-    {
-      id: "add-terminal-tab",
-      sectionId: "panels",
-      titleId: "quickPick.command.addTerminalTab",
-      icon: "terminal",
-      keywords: ["add", "terminal", "tab", "new terminal", "添加终端", "终端标签"],
-      run: handlers.openTerminalTab,
-    },
     ...(supportsEmbeddedBrowser
       ? [
           {
@@ -291,8 +282,7 @@ export function createQuickPickCommands({
 
   return commands.filter(
     (command) =>
-      (supportsTerminal ||
-        (command.id !== "toggle-terminal" && command.id !== "add-terminal-tab")) &&
+      (supportsTerminal || command.id !== "toggle-terminal") &&
       (supportsReview || command.id !== "add-review-tab"),
   );
 }

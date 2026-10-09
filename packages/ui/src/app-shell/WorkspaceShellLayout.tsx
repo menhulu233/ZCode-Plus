@@ -8,9 +8,6 @@ import type {
 import type { PanelImperativeHandle } from "react-resizable-panels";
 
 import { TID_APP_HEADER } from "@zcode/shared";
-// 保活：workspace tab 真正关闭时，按 workspaceKey 回收 side pane terminal 的常驻 PTY/xterm。
-// 对称下侧 Terminal.tsx 的 openWorkspaceKeys 回收。
-import { sidePaneTerminalSessionRegistry } from "@/terminal/sidePaneTerminalSessionRegistry.js";
 import { V4ChatPane } from "@/v4/V4ChatPane.js";
 import { V4WorkspaceChatArea } from "@/v4/V4WorkspaceChatArea.js";
 import {
@@ -303,7 +300,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
   handleOpenTreemapping,
   handleOpenWhiteboard,
   handleOpenDeveloperTools,
-  handleOpenTerminalTab,
   handleToggleGit,
   handleOpenFileTreePane,
   handleOpenGitReview,
@@ -393,16 +389,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
     () => workspaceTabs.map((tab) => tab.workspaceIdentity?.trim() || tab.workspacePath),
     [workspaceTabs],
   );
-  // 保活回收：workspace tab 真正关闭（从 openWorkspaceKeys 移除）时，回收属于该 workspace 的
-  // side pane terminal 常驻 session（杀 PTY + 销 xterm），避免孤儿进程泄漏。
-  // 切 workspace 不会让 workspaceKey 离开这个集合，所以保活的 session 不受影响。
-  // 对称下侧 Terminal.tsx:145-177 的 openWorkspaceKeys 回收逻辑。
-  useEffect(() => {
-    const retained = new Set(openWorkspaceKeys);
-    sidePaneTerminalSessionRegistry.releaseByPredicate(
-      (entry) => Boolean(entry.workspaceKey) && !retained.has(entry.workspaceKey),
-    );
-  }, [openWorkspaceKeys]);
   const isSidebarPanelVisible = isSidebarVisible;
   const {
     panelRef: terminalPanelRef,
@@ -1422,7 +1408,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
     <AnimatedSidePanePanel
       services={services}
       isDesktop={isDesktop}
-      isWindowsDesktop={isWindowsDesktop}
       frameClassName={resolveWorkspaceShellWindowChromeClass({
         isMacDesktop,
         isWindowsDesktop,
@@ -1472,7 +1457,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
       onOpenBrowserTab={handleOpenBrowserTab}
       onOpenWhiteboard={handleOpenWhiteboard}
       onOpenDeveloperTools={handleOpenDeveloperTools}
-      onOpenTerminalTab={handleOpenTerminalTab}
       onOpenReviewTab={handleToggleGit}
       onOpenFileTreeTab={handleOpenFileTreeTabFromLauncher}
       onOpenSelectionSideConversation={handleOpenSelectionSideConversationLauncher}

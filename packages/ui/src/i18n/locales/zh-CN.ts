@@ -447,7 +447,6 @@ const zhCN: Record<string, string> = {
   "quickPick.command.toggleSidebar": "切换侧边栏",
   "quickPick.command.toggleTerminal": "切换终端",
   "quickPick.command.togglePreview": "切换预览",
-  "quickPick.command.addTerminalTab": "添加终端标签",
   "quickPick.command.addBrowserTab": "添加浏览器标签",
   "quickPick.command.addReviewTab": "添加审查标签",
   "quickPick.command.toggleSidePane": "切换面板",

@@ -232,7 +232,6 @@ export function App({
     handleOpenTreemapping,
     handleOpenWhiteboard,
     handleOpenDeveloperTools,
-    handleOpenTerminalTab,
     handleOpenSubagentSession,
     handleOpenBackgroundBash,
     handleOpenSubagentDirectory,
@@ -559,11 +558,6 @@ export function App({
       handleToggleTerminal();
     }
   }, [handleToggleTerminal, workspaceReadOnlyReason]);
-  const handleOpenTerminalTabIfWritable = useCallback(() => {
-    if (!workspaceReadOnlyReason) {
-      handleOpenTerminalTab();
-    }
-  }, [handleOpenTerminalTab, workspaceReadOnlyReason]);
   const handleOpenGitIfWritable = useCallback(() => {
     if (!workspaceReadOnlyReason) {
       handleOpenGit();
@@ -1033,7 +1027,6 @@ export function App({
           toggleSidebar: () => runVisibleWorkspaceCommand(handleToggleSidebar),
           toggleTerminal: () => runVisibleWorkspaceCommand(handleToggleTerminalIfWritable),
           togglePreview: () => runVisibleWorkspaceCommand(handleToggleBrowser),
-          openTerminalTab: () => runVisibleWorkspaceCommand(handleOpenTerminalTabIfWritable),
           openBrowserTab: () => runVisibleWorkspaceCommand(handleOpenBrowserTab),
           openReviewTab: () => runVisibleWorkspaceCommand(handleOpenGitIfWritable),
         },
@@ -1049,7 +1042,6 @@ export function App({
       handleSwitchTheme,
       handleOpenBrowserTab,
       handleOpenGitIfWritable,
-      handleOpenTerminalTabIfWritable,
       handleToggleBrowser,
       handleToggleSidebar,
       handleToggleTerminalIfWritable,
@@ -1246,7 +1238,6 @@ export function App({
         handleOpenTreemapping={handleOpenTreemappingIfWritable}
         handleOpenWhiteboard={handleOpenWhiteboard}
         handleOpenDeveloperTools={handleOpenDeveloperTools}
-        handleOpenTerminalTab={handleOpenTerminalTabIfWritable}
         handleToggleGit={handleToggleGitIfWritable}
         handleOpenFileTreePane={handleOpenFileTreePane}
         handleToggleSidePane={handleToggleSidePane}

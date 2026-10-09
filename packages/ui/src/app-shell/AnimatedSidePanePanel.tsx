@@ -16,7 +16,6 @@ import {
 import { horizontalListSortingStrategy, SortableContext } from "@dnd-kit/sortable";
 import type { BrowserViewScreenshotSurfacePreparePayload, GitChangeSourceId } from "@zcode/shared";
 import { PreviewPane } from "@/PreviewPane.js";
-import { SidePaneTerminalPane } from "@/SidePaneTerminalPane.js";
 import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
 import { WorkspaceSidePaneToggleButton } from "@/WorkspaceSidePaneToggleButton.js";
 import { DesktopWindowControls } from "@/DesktopWindowControls.js";
@@ -99,7 +98,6 @@ import {
   GlobeIcon,
   MessageSquareTextIcon,
   PlusIcon,
-  SquareTerminalIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -283,7 +281,6 @@ function useWindowResizeSettling(enabled: boolean) {
 export function AnimatedSidePanePanel({
   services,
   isDesktop,
-  isWindowsDesktop,
   isVisible,
   sidePaneState,
   recentClosedSidePaneTabs,
@@ -321,7 +318,6 @@ export function AnimatedSidePanePanel({
   onOpenBrowserTab,
   onOpenWhiteboard: _onOpenWhiteboard,
   onOpenDeveloperTools,
-  onOpenTerminalTab,
   onOpenReviewTab,
   onOpenFileTreeTab,
   onOpenSelectionSideConversation,
@@ -353,7 +349,6 @@ export function AnimatedSidePanePanel({
   onCloseSidePane?: () => void;
   toggleSidePaneShortcutLabel?: string;
   isDesktop?: boolean;
-  isWindowsDesktop?: boolean;
   isVisible: boolean;
   sidePaneState: WorkspaceSidePaneState | null;
   recentClosedSidePaneTabs: RecentClosedSidePaneTab[];
@@ -393,7 +388,6 @@ export function AnimatedSidePanePanel({
   onOpenBrowserTab: () => void;
   onOpenWhiteboard: () => void;
   onOpenDeveloperTools: () => void;
-  onOpenTerminalTab: () => void;
   onOpenReviewTab: () => void;
   onOpenFileTreeTab: () => void;
   onOpenSelectionSideConversation: () => void;
@@ -752,17 +746,6 @@ export function AnimatedSidePanePanel({
           <PaletteIcon className="size-4" />
           <span>{intl.formatMessage({ id: "whiteboard.title" })}</span>
         </DropdownMenuItem> */}
-        {!isOfficeMode ? (
-          <DropdownMenuItem
-            data-side-pane-add-item="terminal"
-            onSelect={() => {
-              onOpenTerminalTab();
-            }}
-          >
-            <SquareTerminalIcon className="size-4" />
-            <span>{intl.formatMessage({ id: "terminal.title" })}</span>
-          </DropdownMenuItem>
-        ) : null}
         {supportsEmbeddedBrowser ? (
           <DropdownMenuItem
             data-side-pane-add-item="browser"
@@ -807,12 +790,6 @@ export function AnimatedSidePanePanel({
       icon: FolderTreeIcon,
       onOpen: onOpenFileTreeTab,
     },
-    terminal: {
-      id: "terminal",
-      label: intl.formatMessage({ id: "terminal.title" }),
-      icon: SquareTerminalIcon,
-      onOpen: onOpenTerminalTab,
-    },
     browser: {
       id: "browser",
       label: intl.formatMessage({ id: "browser.title" }),
@@ -833,7 +810,7 @@ export function AnimatedSidePanePanel({
     hasFileTreeTab,
     supportsEmbeddedBrowser,
   })
-    .filter((itemId) => !isOfficeMode || (itemId !== "terminal" && itemId !== "review"))
+    .filter((itemId) => !isOfficeMode || itemId !== "review")
     .map((itemId) => openTabLauncherItemById[itemId]);
   const closeSidePaneButton =
     isVisible && onCloseSidePane ? (
@@ -1313,16 +1290,6 @@ export function AnimatedSidePanePanel({
                               enabled={isVisible && tab.id === visibleActiveTabId}
                             />
                           </ServiceProvider>
-                        ) : tab.type === "terminal" ? (
-                          <SidePaneTerminalPane
-                            services={services}
-                            sessionId={tab.id}
-                            workspaceKey={workspaceKey}
-                            cwd={tab.cwd ?? workspaceAbsPath}
-                            isVisible={isVisible && tab.id === visibleActiveTabId}
-                            isWindowsDesktop={isWindowsDesktop}
-                            onOpenBrowserUrl={onOpenBrowserUrl}
-                          />
                         ) : (
                           <HumanBrowserView
                             browserKey={tab.id}

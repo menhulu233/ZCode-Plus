@@ -4,7 +4,6 @@ export type OpenTabLauncherItemId =
   | "selection-side-conversation"
   | "review"
   | "file-tree"
-  | "terminal"
   | "browser"
   | "developer-tools";
 
@@ -35,8 +34,6 @@ export function resolveOpenTabLauncherItemIds({
   if (!hasFileTreeTab) {
     itemIds.push("file-tree");
   }
-
-  itemIds.push("terminal");
 
   if (supportsEmbeddedBrowser) {
     itemIds.push("browser");
