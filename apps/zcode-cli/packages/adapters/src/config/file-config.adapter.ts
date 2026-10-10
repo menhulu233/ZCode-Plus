@@ -381,6 +381,44 @@ export interface SuppressedBuiltinPatchResult {
   suppressed: boolean;
 }
 
+export interface SuppressedBuiltinMarketplacePatchResult {
+  path: string;
+  marketplaceId: string;
+  suppressed: boolean;
+}
+
+/**
+ * Persist that a builtin third-party marketplace preset was removed by the user, so
+ * the declared layer stops re-adding it across restarts and app upgrades. Idempotent.
+ * Only suppresses the builtin constant table; user-config extraKnownMarketplaces
+ * declarations with the same id are unaffected.
+ */
+export async function addSuppressedBuiltinMarketplaceInFileConfig(
+  filePath: string,
+  marketplaceId: string,
+): Promise<SuppressedBuiltinMarketplacePatchResult> {
+  const resolvedPath = resolvePath(filePath);
+  const parsed = await readJsonConfigFileOrEmpty(resolvedPath);
+  const plugins = isRecord(parsed.plugins) ? parsed.plugins : {};
+  const current = Array.isArray(plugins.suppressedBuiltinMarketplaces)
+    ? (plugins.suppressedBuiltinMarketplaces as unknown[]).filter(
+        (v): v is string => typeof v === "string",
+      )
+    : [];
+  if (current.includes(marketplaceId)) {
+    return { path: resolvedPath, marketplaceId, suppressed: true };
+  }
+  const next = {
+    ...parsed,
+    plugins: {
+      ...plugins,
+      suppressedBuiltinMarketplaces: [...current, marketplaceId],
+    },
+  };
+  await atomicWriteJson(resolvedPath, next);
+  return { path: resolvedPath, marketplaceId, suppressed: true };
+}
+
 /**
  * Persist that a built-in (official) plugin is uninstalled, so seeding skips it
  * across restarts and app upgrades. Idempotent. Stored in user config beside

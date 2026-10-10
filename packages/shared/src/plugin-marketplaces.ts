@@ -47,3 +47,77 @@ export const PUBLIC_STORE_MARKETPLACE_IDS = [ZCODE_OFFICIAL_PLUGIN_MARKETPLACE_I
 export function isPublicStoreMarketplaceId(id: string): boolean {
   return (PUBLIC_STORE_MARKETPLACE_IDS as readonly string[]).includes(id);
 }
+
+export interface BuiltinThirdPartyMarketplace {
+  /**
+   * Marketplace id，必须满足 marketplace id 规范且不得等于官方市场 id。
+   * 必须等于上游仓库 .claude-plugin/marketplace.json 自声明的 `name`：
+   * 物化时 addMarketplace 的 expectedId 守卫按「声明 id = manifest name」fail closed，
+   * 不一致会抛 Marketplace declaration id mismatch。上游改名即物化失败，属于预期防冒名行为。
+   */
+  id: string;
+  /** GitHub owner/repo，物化时走 git source。 */
+  repo: string;
+  description: string;
+}
+
+/**
+ * 出厂内置的第三方市场预设（GitHub 托管的 .claude-plugin/marketplace.json 生态）。
+ *
+ * 这些预设只进入「声明层」：启动与 overview 读取不联网、不物化；用户显式刷新/安装时才由
+ * bootstrap 的 declared 物化路径 clone。用户移除后通过 config suppression 不再复活，
+ * 用户 config 的 extraKnownMarketplaces 同 id 声明优先于本表。预设 ≠ 官方分发渠道，
+ * 商店展示在个人来源分段，不冒充官方。
+ */
+export const BUILTIN_THIRD_PARTY_MARKETPLACES: readonly BuiltinThirdPartyMarketplace[] = [
+  {
+    id: "claude-code-workflows",
+    repo: "wshobson/agents",
+    description:
+      "Community agent and command collections for Claude Code, Codex, Cursor and OpenCode.",
+  },
+  {
+    id: "claude-community",
+    repo: "anthropics/claude-plugins-community",
+    description:
+      "Community plugin marketplace for Claude Cowork and Claude Code (read-only mirror).",
+  },
+  {
+    id: "skills-curated",
+    repo: "trailofbits/skills-curated",
+    description: "Curated, community-vetted Claude Code plugin marketplace from Trail of Bits.",
+  },
+  {
+    id: "cc-marketplace",
+    repo: "ananddtyagi/cc-marketplace",
+    description: "Community marketplace for Claude Code plugins.",
+  },
+  {
+    id: "claude-code-hooks",
+    repo: "karanb192/claude-code-hooks",
+    description: "Claude Code hooks marketplace: safety, cost and observability.",
+  },
+  {
+    id: "gptaku-plugins",
+    repo: "fivetaku/gptaku_plugins",
+    description: "AI-native Claude Code plugin marketplace.",
+  },
+  {
+    id: "n-skills",
+    repo: "numman-ali/n-skills",
+    description: "Curated plugin marketplace for AI agents (Claude Code, Codex, openskills).",
+  },
+  {
+    id: "power-bi-agentic-development",
+    repo: "data-goblin/power-bi-agentic-development",
+    description: "Power BI AI skills and agents for Claude Code and GitHub Copilot.",
+  },
+];
+
+const BUILTIN_THIRD_PARTY_MARKETPLACE_IDS: ReadonlySet<string> = new Set(
+  BUILTIN_THIRD_PARTY_MARKETPLACES.map((marketplace) => marketplace.id),
+);
+
+export function isBuiltinThirdPartyMarketplaceId(id: string): boolean {
+  return BUILTIN_THIRD_PARTY_MARKETPLACE_IDS.has(id);
+}

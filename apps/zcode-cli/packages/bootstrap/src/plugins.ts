@@ -3,6 +3,7 @@ import { dirname, isAbsolute, join, resolve, win32 } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import {
   addSuppressedBuiltinInFileConfig,
+  addSuppressedBuiltinMarketplaceInFileConfig,
   createConfig,
   resolvePath,
   enablePluginsByDefaultInFileConfig,
@@ -49,7 +50,12 @@ import type {
   PluginStoreListing,
 } from "@zcode/contracts";
 import { ZCODE_OFFICIAL_PLUGIN_MARKETPLACE, isOfficialMarketplaceId } from "@zcode/contracts";
-import { ZCODE_CUA_OFFICIAL_PLUGIN_ID, isZCodeCuaInternalFeatureEnabled } from "@zcode/shared";
+import {
+  BUILTIN_THIRD_PARTY_MARKETPLACES,
+  ZCODE_CUA_OFFICIAL_PLUGIN_ID,
+  isBuiltinThirdPartyMarketplaceId,
+  isZCodeCuaInternalFeatureEnabled,
+} from "@zcode/shared";
 import { resolveOfficialPluginRoots } from "./app/bundled-plugins.js";
 import {
   DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS,
@@ -499,11 +505,20 @@ export async function addZCodePluginMarketplace(
 export async function removeZCodePluginMarketplace(
   options: RemoveZCodeMarketplaceOptions,
 ): Promise<void> {
-  const { pluginStorageRoot } = resolvePluginContext(options);
+  const { configResult, pluginStorageRoot } = resolvePluginContext(options);
   await removeMarketplace({
     marketplace: options.marketplace,
     storageRoot: pluginStorageRoot,
   });
+  // 内置第三方预设被用户移除：写 suppression，否则下一次 resolve 会按出厂常量表复活。
+  // 抑制只作用于内置层；用户之后仍可通过「添加个人来源」重加同 id（走普通 known 路径，
+  // 不经过内置声明）。Marketplace 是 Host User inventory，写 User config 而非 Workspace。
+  if (isBuiltinThirdPartyMarketplaceId(options.marketplace)) {
+    await addSuppressedBuiltinMarketplaceInFileConfig(
+      configResult.sources.user.path,
+      options.marketplace,
+    );
+  }
 }
 
 export async function updateZCodePluginMarketplace(
@@ -1041,14 +1056,24 @@ function resolvePluginContext(options: ResolveZCodePluginsOptions): {
 function resolveDeclaredMarketplaceSources(input: {
   configResult: ConfigResult;
 }): Map<string, MarketplaceSource> {
-  return new Map(
-    Object.entries(input.configResult.config.plugins.extraKnownMarketplaces ?? {}).map(
-      ([marketplaceId, declaration]) => {
-        const baseDirectory = dirname(input.configResult.sources.plugins.paths.user);
-        return [marketplaceId, resolveDeclaredMarketplaceSource(declaration.source, baseDirectory)];
-      },
-    ),
+  // 声明层 = 出厂内置第三方市场预设（默认层）+ 用户 config 声明（同 id 覆盖预设）。
+  // 预设被用户移除时通过 suppression 剔除；用户自己的 extraKnownMarketplaces 声明不受
+  // 抑制影响。声明保持惰性：这里只构造 source，联网/物化只发生在显式 refresh/install。
+  const suppressed = new Set(
+    input.configResult.config.plugins.suppressedBuiltinMarketplaces ?? [],
   );
+  const declared = new Map<string, MarketplaceSource>();
+  for (const preset of BUILTIN_THIRD_PARTY_MARKETPLACES) {
+    if (suppressed.has(preset.id)) continue;
+    declared.set(preset.id, { source: "github", repo: preset.repo });
+  }
+  const baseDirectory = dirname(input.configResult.sources.plugins.paths.user);
+  for (const [marketplaceId, declaration] of Object.entries(
+    input.configResult.config.plugins.extraKnownMarketplaces ?? {},
+  )) {
+    declared.set(marketplaceId, resolveDeclaredMarketplaceSource(declaration.source, baseDirectory));
+  }
+  return declared;
 }
 
 function resolveDeclaredMarketplaceSource(

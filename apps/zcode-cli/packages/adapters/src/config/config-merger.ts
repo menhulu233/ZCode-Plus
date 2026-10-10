@@ -35,8 +35,10 @@ export function mergeConfigs(...configs: PrioritizedConfig[]): RuntimeConfigPatc
         ? (() => {
             // Marketplace 是 Host User inventory 的目录配置，不属于 Workspace 项目配置。
             // 保留 schema 兼容旧文件，但不能让项目层字段进入 merged RuntimeConfig/catalog。
+            // suppressedBuiltinMarketplaces 同理：内置第三方预设的抑制态是 Host User 决定。
             const projectPlugins = { ...inputConfig.plugins };
             delete projectPlugins.extraKnownMarketplaces;
+            delete projectPlugins.suppressedBuiltinMarketplaces;
             return { ...inputConfig, plugins: projectPlugins };
           })()
         : inputConfig;

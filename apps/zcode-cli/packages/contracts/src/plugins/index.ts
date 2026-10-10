@@ -167,6 +167,8 @@ export interface PluginConfig {
   extraKnownMarketplaces: Record<string, PluginMarketplaceConfig>;
   options: Record<string, PluginOptionValues>;
   suppressedBuiltins: string[];
+  /** 用户显式移除的内置第三方市场预设 id；只抑制出厂常量表层，不影响用户显式声明。 */
+  suppressedBuiltinMarketplaces: string[];
 }
 
 export interface PluginMetadata {

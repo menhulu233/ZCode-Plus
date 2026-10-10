@@ -169,6 +169,9 @@ const pluginsSchema = z.object({
     .optional(),
   options: z.record(z.string(), z.record(z.string(), pluginOptionValueSchema)).optional(),
   suppressedBuiltins: z.array(z.string().min(1)).optional(),
+  // 用户显式移除的内置第三方市场预设 id：抑制「出厂常量表」这层声明，让移除后不复活；
+  // 不影响用户自己在 extraKnownMarketplaces 里的显式声明。
+  suppressedBuiltinMarketplaces: z.array(z.string().min(1)).optional(),
 });
 
 export const LEGACY_CUA_PLUGIN_ID = "zcode-cua@zcode-plugins-official";

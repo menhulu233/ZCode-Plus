@@ -155,6 +155,13 @@ class ConfigStore {
       if (config.plugins.suppressedBuiltins !== undefined) {
         this.set(ConfigKey.PluginsSuppressedBuiltins, config.plugins.suppressedBuiltins, scope);
       }
+      if (config.plugins.suppressedBuiltinMarketplaces !== undefined) {
+        this.set(
+          ConfigKey.PluginsSuppressedBuiltinMarketplaces,
+          config.plugins.suppressedBuiltinMarketplaces,
+          scope,
+        );
+      }
     }
     if (config.skills) {
       if (config.skills.enabled !== undefined)
@@ -306,6 +313,9 @@ export class ConfigPortImpl implements ConfigPort {
         suppressedBuiltins:
           this.store.get(ConfigKey.PluginsSuppressedBuiltins) ??
           DefaultConfig.plugins.suppressedBuiltins,
+        suppressedBuiltinMarketplaces:
+          this.store.get(ConfigKey.PluginsSuppressedBuiltinMarketplaces) ??
+          DefaultConfig.plugins.suppressedBuiltinMarketplaces,
       },
       skills: {
         enabled: this.store.get(ConfigKey.SkillsEnabled) ?? true,
@@ -473,11 +483,13 @@ export {
   removePluginFromFileConfig,
   addSuppressedBuiltinInFileConfig,
   removeSuppressedBuiltinInFileConfig,
+  addSuppressedBuiltinMarketplaceInFileConfig,
   updateUiLocaleInFileConfig,
   type PluginEnabledPatchResult,
   type PluginOptionsPatchResult,
   type PluginRemovePatchResult,
   type SuppressedBuiltinPatchResult,
+  type SuppressedBuiltinMarketplacePatchResult,
   type UiLocalePatchResult,
 } from "./file-config.adapter.js";
 export { parseEnvConfig, getToolConcurrencyConfig } from "./env-config.adapter.js";
