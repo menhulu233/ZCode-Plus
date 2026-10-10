@@ -5,6 +5,7 @@ import type {
   LocalePreference,
   ZCodeInteractionBehavior,
 } from "@zcode/shared";
+import type { TerminalShellOption } from "@zcode/services";
 import {
   TID_SETTINGS_ASK_USER_QUESTION_AUTO_RESOLUTION_SWITCH,
   TID_SETTINGS_NATIVE_SEARCH_SWITCH,
@@ -29,6 +30,7 @@ import { Button } from "@/components/ui/button.js";
 import { SettingsBadge, SettingsGroupCard, SettingsRow } from "@/settings/SettingsPageParts.js";
 import { DataBaseDirControl } from "@/settings/DataBaseDirControl.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { getPathLeaf } from "@/lib/path.js";
 import { useOptionalServices } from "@/hooks/useServices.js";
 import { ProactiveSuggestionsSetting } from "@/settings/ProactiveSuggestionsSetting.js";
 import { normalizeInterfaceMode, type InterfaceMode } from "@/lib/interfaceMode.js";
@@ -61,6 +63,8 @@ export function GeneralSectionContent({
   terminalFontFamily = "",
   integratedTerminalShell = { mode: "auto" },
   integratedTerminalShellOptions = [],
+  defaultTerminalShell = "",
+  defaultTerminalShellOptions = [],
   nativeSearchEnhancementsEnabled,
   httpProxy = "",
   httpProxyNoProxy = "",
@@ -87,6 +91,7 @@ export function GeneralSectionContent({
   onTerminalInheritSystemProfileChange = async () => {},
   onTerminalFontFamilyChange = async () => {},
   onIntegratedTerminalShellChange = async () => {},
+  onDefaultTerminalShellChange = async () => {},
   onNativeSearchEnhancementsEnabledChange,
   onHttpProxyChange = async () => {},
   onHttpProxyNoProxyChange = async () => {},
@@ -123,6 +128,8 @@ export function GeneralSectionContent({
   terminalFontFamily: string;
   integratedTerminalShell?: IntegratedTerminalShellSelection;
   integratedTerminalShellOptions?: IntegratedTerminalShellOption[];
+  defaultTerminalShell?: string;
+  defaultTerminalShellOptions?: TerminalShellOption[];
   nativeSearchEnhancementsEnabled: boolean;
   httpProxy?: string;
   httpProxyNoProxy?: string;
@@ -150,6 +157,7 @@ export function GeneralSectionContent({
   onTerminalInheritSystemProfileChange: (enabled: boolean) => Promise<void>;
   onTerminalFontFamilyChange: (fontFamily: string) => Promise<void>;
   onIntegratedTerminalShellChange?: (selection: IntegratedTerminalShellSelection) => Promise<void>;
+  onDefaultTerminalShellChange?: (shellPath: string) => Promise<void>;
   onNativeSearchEnhancementsEnabledChange: (enabled: boolean) => Promise<void>;
   onHttpProxyChange?: (httpProxy: string) => Promise<void>;
   onHttpProxyNoProxyChange?: (noProxy: string) => Promise<void>;
@@ -231,6 +239,26 @@ export function GeneralSectionContent({
       });
     },
     [onIntegratedTerminalShellChange, visibleIntegratedTerminalShellOptions],
+  );
+
+  const visibleDefaultTerminalShellOptions = defaultTerminalShellOptions.some(
+    (option) => option.path === defaultTerminalShell,
+  )
+    ? defaultTerminalShellOptions
+    : [
+        // 存量 shell 已卸载（选项列表里没有当前值）时仍要显示选中项，避免 Select 空白；用户可顺手改选。
+        ...(defaultTerminalShell
+          ? [{ path: defaultTerminalShell, name: getPathLeaf(defaultTerminalShell) }]
+          : []),
+        ...defaultTerminalShellOptions,
+      ];
+
+  const handleDefaultTerminalShellChange = useCallback(
+    async (value: string) => {
+      // 「自动」写空串：RPC 会吞掉 undefined，由 normalizeSettingsPatch 归一清除存量覆盖。
+      await onDefaultTerminalShellChange(value === "auto" ? "" : value);
+    },
+    [onDefaultTerminalShellChange],
   );
 
   const [localHttpProxy, setLocalHttpProxy] = useState(httpProxy);
@@ -393,6 +421,34 @@ export function GeneralSectionContent({
               }}
               className="max-w-[520px] font-mono"
             />
+          }
+        />
+        <SettingsRow
+          label={intl.formatMessage({ id: "settings.defaultTerminalShell" })}
+          description={intl.formatMessage({
+            id: "settings.defaultTerminalShellDescription",
+          })}
+          control={
+            <Select
+              value={defaultTerminalShell || "auto"}
+              onValueChange={(value) => {
+                void handleDefaultTerminalShellChange(value);
+              }}
+            >
+              <SelectTrigger size="lg" className="w-[260px] min-w-0 justify-between">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">
+                  {intl.formatMessage({ id: "settings.defaultTerminalShell.auto" })}
+                </SelectItem>
+                {visibleDefaultTerminalShellOptions.map((option) => (
+                  <SelectItem key={option.path} value={option.path}>
+                    {option.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           }
         />
         {showIntegratedTerminalShell ? (

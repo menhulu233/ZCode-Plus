@@ -21,7 +21,7 @@ export interface ITerminalService {
     cols: number;
     rows: number;
     cwd?: string;
-    /** 显式指定 shell（来自 listShells）；缺席时按环境自动探测。 */
+    /** 显式指定 shell（来自 listShells）；缺席时依次回退默认终端设置（defaultTerminalShell）→ 环境自动探测。 */
     shell?: string;
   }): Promise<{
     id: string;

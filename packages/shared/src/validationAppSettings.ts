@@ -425,6 +425,8 @@ const appSettingsObjectSchema = z.object({
   localePreference: localePreferenceSchema.default("system"),
   terminalInheritSystemProfile: z.boolean().default(true),
   terminalFontFamily: nonEmptyStringSchema.optional(),
+  // 底部终端默认 shell；键未注册时 zod 会把补丁里的值静默剥掉，设置无法持久化。
+  defaultTerminalShell: nonEmptyStringSchema.optional(),
   integratedTerminalShell: integratedTerminalShellSelectionSchema.optional(),
   httpProxy: nonEmptyStringSchema.optional(),
   httpProxyNoProxy: nonEmptyStringSchema.optional(),
@@ -497,6 +499,7 @@ export const appSettingsPatchSchema = z.object({
   localePreference: localePreferenceSchema.optional(),
   terminalInheritSystemProfile: z.boolean().optional(),
   terminalFontFamily: nonEmptyStringSchema.optional(),
+  defaultTerminalShell: nonEmptyStringSchema.optional(),
   integratedTerminalShell: integratedTerminalShellSelectionSchema.optional(),
   httpProxy: nonEmptyStringSchema.optional(),
   httpProxyNoProxy: nonEmptyStringSchema.optional(),

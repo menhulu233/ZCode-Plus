@@ -190,6 +190,13 @@ function listAvailableShells(): TerminalShellOption[] {
     "/usr/bin/pwsh",
     "/usr/local/bin/pwsh",
     "/opt/homebrew/bin/pwsh",
+    // 修复依据：上面全是绝对路径候选，而 resolveExecutablePath 只对裸命令名做 PATH 扫描，
+    // snap 安装的 pwsh（/snap/bin/pwsh）与 ~/.local/bin 等非固定位置因此枚举不到。
+    // 追加裸名候选走 PATH 兜底；固定路径在前，同名去重后固定路径优先。
+    "pwsh",
+    "zsh",
+    "bash",
+    "fish",
     "/bin/sh",
   ].filter((command): command is string => Boolean(command));
 
@@ -427,6 +434,18 @@ function resolveTerminalShell(): string {
   throw new Error("No usable shell found for terminal startup");
 }
 
+/**
+ * 解析设置里的默认终端 shell（AppSettings.defaultTerminalShell）：
+ * 空白或不可执行（shell 已卸载、远程侧路径不存在）返回 null，由 create 回退自动探测。
+ * 与显式 shell 的报错语义区分：存量偏好允许过期，不能让终端因过期设置直接 spawn 失败。
+ */
+export function resolveConfiguredDefaultShell(settings: {
+  defaultTerminalShell?: string;
+}): string | null {
+  const configured = settings.defaultTerminalShell?.trim();
+  return configured && isExecutable(configured) ? configured : null;
+}
+
 function resolveTerminalCwd(cwd?: string): string {
   // 工作区目录可能已经被删除、移动，或者启动时传进来的是一个失效路径。
   // 之前把这个 cwd 原样传给 node-pty，同样会在 spawn 阶段失败。
@@ -480,19 +499,25 @@ export function createTerminalService(dependencies: {
       windowsPty?: TerminalWindowsPtyInfo;
     }> {
       const id = String(nextId++);
+      // 默认 shell 与字体同源于设置：一次读取同时供两者使用；读取失败回退默认字体行为。
+      const terminalProfileSettings = await dependencies.settingService.get().catch(() => ({
+        terminalFontFamily: undefined,
+        terminalInheritSystemProfile: true,
+        defaultTerminalShell: undefined,
+      }));
       const explicitShell = params.shell?.trim();
       // 显式选择的 shell 来自 listShells，理论上已验证可执行；这里再验一次并给清晰报错，
       // 避免坏路径直接落进 posix_spawnp 产生难定位的 spawn 失败。
       if (explicitShell && !isExecutable(explicitShell)) {
         throw new Error(`Selected shell is not executable: ${explicitShell}`);
       }
-      const shell = explicitShell || resolveTerminalShell();
+      // shell 优先级：显式选择 > 默认终端设置（失效静默回退自动探测）> 环境自动探测。
+      const shell =
+        explicitShell ||
+        resolveConfiguredDefaultShell(terminalProfileSettings) ||
+        resolveTerminalShell();
       const cwd = resolveTerminalCwd(params.cwd);
       const env = resolveTerminalEnv();
-      const terminalProfileSettings = await dependencies.settingService.get().catch(() => ({
-        terminalFontFamily: undefined,
-        terminalInheritSystemProfile: true,
-      }));
       const fontProfile = resolveTerminalFontProfile({
         settings: terminalProfileSettings,
         env: process.env,

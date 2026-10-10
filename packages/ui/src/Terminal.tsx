@@ -454,88 +454,91 @@ export function Terminal({
           </div>
 
           <div className="min-w-0 flex-1 overflow-x-auto !scrollbar-hide">
-            <DndContext
-              sensors={tabDragSensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleTabDragEnd}
-            >
-              <TabsList className="flex !h-7 w-max justify-start gap-1 rounded-none bg-transparent p-0">
-                <SortableContext
-                  items={currentSessions.map((session) => session.id)}
-                  strategy={horizontalListSortingStrategy}
-                >
-                  {currentSessions.map((session, tabIndex) => {
-                    const projectName =
-                      getPathLeaf(session.cwd ?? "") ||
-                      intl.formatMessage({ id: "terminal.title" });
-                    const title =
-                      session.customTitle?.trim() ||
-                      formatTerminalTabTitle(projectName, session.index);
-                    return (
-                      <TerminalTabTrigger
-                        key={session.id}
-                        session={session}
-                        title={title}
-                        labels={{
-                          ...tabLabels,
-                          closeTab: intl.formatMessage({ id: "terminal.closeTab" }, { title }),
-                        }}
-                        isActive={session.id === activeSession?.id}
-                        canCloseLeft={tabIndex > 0}
-                        canCloseRight={tabIndex < currentSessions.length - 1}
-                        canCloseOthers={currentSessions.length > 1}
-                        onClose={handleCloseSession}
-                        onCloseSide={handleCloseSessionSide}
-                        onCloseOthers={handleCloseOtherSessions}
-                        onRename={handleRenameSession}
-                      />
-                    );
-                  })}
-                </SortableContext>
-              </TabsList>
-            </DndContext>
+            {/* 新建入口紧贴最新建的终端 tab：+ 与 shell 下拉随 tab 条横向滚动，不再固定在右端按钮簇。 */}
+            <div className="flex w-max items-center gap-1">
+              <DndContext
+                sensors={tabDragSensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleTabDragEnd}
+              >
+                <TabsList className="flex !h-7 justify-start gap-1 rounded-none bg-transparent p-0">
+                  <SortableContext
+                    items={currentSessions.map((session) => session.id)}
+                    strategy={horizontalListSortingStrategy}
+                  >
+                    {currentSessions.map((session, tabIndex) => {
+                      const projectName =
+                        getPathLeaf(session.cwd ?? "") ||
+                        intl.formatMessage({ id: "terminal.title" });
+                      const title =
+                        session.customTitle?.trim() ||
+                        formatTerminalTabTitle(projectName, session.index);
+                      return (
+                        <TerminalTabTrigger
+                          key={session.id}
+                          session={session}
+                          title={title}
+                          labels={{
+                            ...tabLabels,
+                            closeTab: intl.formatMessage({ id: "terminal.closeTab" }, { title }),
+                          }}
+                          isActive={session.id === activeSession?.id}
+                          canCloseLeft={tabIndex > 0}
+                          canCloseRight={tabIndex < currentSessions.length - 1}
+                          canCloseOthers={currentSessions.length > 1}
+                          onClose={handleCloseSession}
+                          onCloseSide={handleCloseSessionSide}
+                          onCloseOthers={handleCloseOtherSessions}
+                          onRename={handleRenameSession}
+                        />
+                      );
+                    })}
+                  </SortableContext>
+                </TabsList>
+              </DndContext>
+              {!isOfficeMode && (
+                <>
+                  <Button
+                    type="button"
+                    size="icon-md"
+                    variant="ghost"
+                    onClick={() => void handleCreateSession()}
+                    title={intl.formatMessage({ id: "terminal.new" })}
+                    aria-label={intl.formatMessage({ id: "terminal.new" })}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                  {shellOptions.length > 0 ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          type="button"
+                          size="icon-md"
+                          variant="ghost"
+                          title={intl.formatMessage({ id: "terminal.shell.select" })}
+                          aria-label={intl.formatMessage({ id: "terminal.shell.select" })}
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        {shellOptions.map((shellOption) => (
+                          <DropdownMenuItem
+                            key={shellOption.path}
+                            onSelect={() => void handleCreateSession(shellOption.path)}
+                          >
+                            {shellOption.name}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : null}
+                </>
+              )}
+            </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-            {!isOfficeMode && (
-              <>
-                <Button
-                  type="button"
-                  size="icon-md"
-                  variant="ghost"
-                  onClick={() => void handleCreateSession()}
-                  title={intl.formatMessage({ id: "terminal.new" })}
-                  aria-label={intl.formatMessage({ id: "terminal.new" })}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-                {shellOptions.length > 0 ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        type="button"
-                        size="icon-md"
-                        variant="ghost"
-                        title={intl.formatMessage({ id: "terminal.shell.select" })}
-                        aria-label={intl.formatMessage({ id: "terminal.shell.select" })}
-                      >
-                        <ChevronDown className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44">
-                      {shellOptions.map((shellOption) => (
-                        <DropdownMenuItem
-                          key={shellOption.path}
-                          onSelect={() => void handleCreateSession(shellOption.path)}
-                        >
-                          {shellOption.name}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : null}
-              </>
-            )}
             <Button
               type="button"
               size="icon-md"

@@ -17,6 +17,7 @@ import type {
   UserInfo,
   ZCodeInteractionBehavior,
 } from "@zcode/shared";
+import type { TerminalShellOption } from "@zcode/services";
 import {
   BUILTIN_MODEL_PROVIDER_IDS,
   TID_SETTINGS_BACK_BUTTON,
@@ -691,6 +692,10 @@ export function SettingsPage({
   const [integratedTerminalShellOptions, setIntegratedTerminalShellOptions] = useState<
     IntegratedTerminalShellOption[]
   >([]);
+  const [defaultTerminalShell, setDefaultTerminalShell] = useState("");
+  const [defaultTerminalShellOptions, setDefaultTerminalShellOptions] = useState<
+    TerminalShellOption[]
+  >([]);
   const [httpProxy, setHttpProxy] = useState("");
   const [httpProxyNoProxy, setHttpProxyNoProxy] = useState("");
   const [httpProxyCaCertPath, setHttpProxyCaCertPath] = useState("");
@@ -775,6 +780,7 @@ export function SettingsPage({
         setTerminalInheritSystemProfile(settings.terminalInheritSystemProfile ?? true);
         setTerminalFontFamily(settings.terminalFontFamily ?? "");
         setIntegratedTerminalShell(settings.integratedTerminalShell ?? { mode: "auto" });
+        setDefaultTerminalShell(settings.defaultTerminalShell ?? "");
         setHttpProxy(settings.httpProxy ?? "");
         setHttpProxyNoProxy(settings.httpProxyNoProxy ?? "");
         setHttpProxyCaCertPath(settings.httpProxyCaCertPath ?? "");
@@ -816,7 +822,15 @@ export function SettingsPage({
           });
       })
       .catch(() => {});
-  }, [localHostServices.systemService, services.settingService]);
+    // 默认终端同样属于本地全局设置：选项必须来自本地 host 的 shell 枚举，
+    // services 可能已切换到远端 workspace，不能用远端结果写入本机设置。
+    localHostServices.terminalService
+      .listShells()
+      .then(setDefaultTerminalShellOptions)
+      .catch(() => {
+        setDefaultTerminalShellOptions([]);
+      });
+  }, [localHostServices.systemService, localHostServices.terminalService, services.settingService]);
 
   useEffect(() => {
     if (!sharedSettings) {
@@ -875,6 +889,24 @@ export function SettingsPage({
         },
       });
       setIntegratedTerminalShell(selection);
+    },
+    [services.settingService],
+  );
+  const handleDefaultTerminalShellChange = useCallback(
+    async (shellPath: string) => {
+      const normalizedShellPath = shellPath.trim();
+      await runSettingsActionAsync({
+        featureId: "settings.terminal",
+        action: "save_default_terminal_shell",
+        trigger: "select",
+        operation: () =>
+          services.settingService.update({ defaultTerminalShell: normalizedShellPath }),
+        completed: {
+          resultSource: "setting_service",
+          valueAfter: normalizedShellPath.length > 0 ? "explicit" : "auto",
+        },
+      });
+      setDefaultTerminalShell(normalizedShellPath);
     },
     [services.settingService],
   );
@@ -1673,6 +1705,8 @@ export function SettingsPage({
                             terminalFontFamily={terminalFontFamily}
                             integratedTerminalShell={integratedTerminalShell}
                             integratedTerminalShellOptions={integratedTerminalShellOptions}
+                            defaultTerminalShell={defaultTerminalShell}
+                            defaultTerminalShellOptions={defaultTerminalShellOptions}
                             nativeSearchEnhancementsEnabled={nativeSearchEnhancementsEnabled}
                             httpProxy={httpProxy}
                             httpProxyNoProxy={httpProxyNoProxy}
@@ -1729,6 +1763,7 @@ export function SettingsPage({
                             }
                             onTerminalFontFamilyChange={handleTerminalFontFamilyChange}
                             onIntegratedTerminalShellChange={handleIntegratedTerminalShellChange}
+                            onDefaultTerminalShellChange={handleDefaultTerminalShellChange}
                             onNativeSearchEnhancementsEnabledChange={
                               handleNativeSearchEnhancementsEnabledChange
                             }

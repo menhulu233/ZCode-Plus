@@ -24,6 +24,17 @@ export function normalizeSettingsPatch(patch: Partial<AppSettings>): Partial<App
       trimmedTerminalFontFamily.length > 0 ? trimmedTerminalFontFamily : undefined;
   }
 
+  if (
+    "defaultTerminalShell" in normalizedPatch &&
+    typeof normalizedPatch.defaultTerminalShell === "string"
+  ) {
+    // 默认终端 shell 与字体同形：RPC 会吞掉 undefined，清空（设置页选「自动」）写空串，
+    // 这里归一成 undefined 清除存量覆盖，避免旧 shell 一直残留。
+    const trimmedDefaultTerminalShell = normalizedPatch.defaultTerminalShell.trim();
+    normalizedPatch.defaultTerminalShell =
+      trimmedDefaultTerminalShell.length > 0 ? trimmedDefaultTerminalShell : undefined;
+  }
+
   if ("integratedTerminalShell" in normalizedPatch) {
     const selection = normalizedPatch.integratedTerminalShell;
     if (selection?.mode === "auto") {

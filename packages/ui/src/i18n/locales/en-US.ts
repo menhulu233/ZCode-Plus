@@ -2136,6 +2136,10 @@ const enUS: Record<string, string> = {
   "settings.terminalFontFamilyDescription":
     "Leave blank to auto-detect system terminal settings; set a value to override the ZCode terminal font.",
   "settings.terminalFontFamilyPlaceholder": "Leave blank to inherit, e.g. MesloLGS NF, monospace",
+  "settings.defaultTerminalShell": "Default terminal",
+  "settings.defaultTerminalShellDescription":
+    "Shell used for new bottom terminal sessions; falls back to auto detection when unavailable. The tab-bar dropdown applies to the next session only.",
+  "settings.defaultTerminalShell.auto": "Auto",
   "settings.integratedTerminalShell": "Integrated terminal shell",
   "settings.integratedTerminalShellDescription":
     "Applies to new sessions only. On Windows, Bash uses this shell; Auto tries Git Bash, then cmd.exe.",

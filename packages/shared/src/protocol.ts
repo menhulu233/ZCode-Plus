@@ -251,6 +251,12 @@ export interface AppSettings {
   terminalInheritSystemProfile?: boolean;
   /** 用户显式覆盖的终端字体；为空时从系统终端配置自动探测 */
   terminalFontFamily?: string;
+  /**
+   * 底部交互终端新建会话的默认 shell（listShells 返回的 path）。
+   * 为空时服务端自动探测；不可执行（如已卸载）时静默回退自动探测。
+   * 与 integratedTerminalShell（Windows 下 agent 执行命令的 shell）语义独立。
+   */
+  defaultTerminalShell?: string;
   /** Windows 下 Bash 工具使用的本机 shell；未配置时自动选择。 */
   integratedTerminalShell?: IntegratedTerminalShellSelection;
   /** HTTP/HTTPS 出口代理，例如 http://127.0.0.1:7890；为空时直连。下次启动 app/agent 生效。 */

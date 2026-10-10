@@ -2006,6 +2006,10 @@ const zhCN: Record<string, string> = {
   "settings.terminalFontFamilyDescription":
     "留空时自动探测系统终端配置；填写后作为 ZCode 终端的字体覆盖。",
   "settings.terminalFontFamilyPlaceholder": "留空自动继承，例如 MesloLGS NF, monospace",
+  "settings.defaultTerminalShell": "默认终端",
+  "settings.defaultTerminalShellDescription":
+    "新建底部终端会话使用的 shell；不可用时回退自动探测。下拉选择仅对当次新建生效。",
+  "settings.defaultTerminalShell.auto": "自动",
   "settings.integratedTerminalShell": "集成终端Shell",
   "settings.integratedTerminalShellDescription":
     "仅新会话生效。Windows 下 Bash 工具用此 shell；自动优先 Git Bash，找不到回退 cmd.exe。",
